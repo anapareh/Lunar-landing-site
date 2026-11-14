@@ -39,8 +39,8 @@ decisiones con fecha y motivo. Plan completo acordado: ver README y `architectur
 | Q-003 | ¿Se permite preparación previa antes del inicio oficial? |
 | Q-004 | Idioma de la entrega y de la interfaz |
 | Q-005 | ¿Las regiones candidatas de Artemis cuentan como sitios? ¿Con qué punto representativo? |
-| Q-006 | Visibilidad de la Tierra: ¿elevación mínima configurable para la antena? (propuesta: parámetro, por defecto 0° sobre el relieve) |
-| Q-007 | Definición de ocaso y de luz: ¿disco parcial o completo? (propuesta: % del disco visible; ocaso = 0 %) |
+| Q-006 | Visibilidad de la Tierra: ¿elevación mínima configurable para la antena? **Implementado como parámetro** (`minClearanceDeg` en `web/src/lib/horizon.ts`), por defecto 0°. Falta decidir si se expone en la interfaz |
+| Q-007 | Definición de ocaso y de luz. **Por defecto provisional: `anyPart`** (visible mientras asome el borde superior; ocaso = 0 % del disco). También se puede elegir `center` o `full`. La fracción visible del disco se calcula siempre |
 | Q-008 | Rango de fechas: ¿también recrear los aterrizajes históricos? ¿Uno o varios años para las "estaciones"? |
 | Q-009 | Una misión CLPS que ya aterrizó: ¿aparece en "CLPS" y en "Históricas"? (propuesta: sí; filtros = categoría + estado) |
 
