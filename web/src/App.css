@@ -1,0 +1,35 @@
+/* Estilos mínimos del layout: 3 zonas vacías. */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.app-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ccc;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.app-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  min-height: calc(100vh - 4rem);
+  box-sizing: border-box;
+}
+
+.zone {
+  border: 1px dashed #bbb;
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+}

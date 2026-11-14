@@ -1,0 +1,40 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node / web ---
+node_modules/
+web/dist/
+*.log
+npm-debug.log*
+.vite/
+
+# --- Datos pesados (descargas LOLA, kernels SPICE) ---
+data-pipeline/raw/*
+!data-pipeline/raw/.gitkeep
+*.bsp
+*.bpc
+*.tpc
+*.tf
+*.tls
+*.tif
+*.img
+*.lbl
+
+# --- Editor / SO ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.env
