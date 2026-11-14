@@ -1,14 +1,27 @@
 /**
  * Estado global de la app (zustand).
- * Escenarios a comparar (sitio + fecha, máx. 4) y escenario activo para el detalle.
- * Futuro: ventana temporal, coordenadas libres, vista activa, instante de la animación.
+ * - Escenario en edición: coordenadas libres + fecha de referencia.
+ * - Escenarios a comparar (sitio + fecha, máx. 4) y escenario activo para el detalle.
+ * Futuro: sitio curado seleccionado, ventana configurable, vista activa, instante de la animación.
  */
 import { create } from "zustand";
 import type { Scenario } from "../types";
 
 export const MAX_SCENARIOS = 4;
 
+export interface Coords {
+  lat: number;
+  lon: number;
+}
+
 export interface AppState {
+  /** Coordenadas libres en edición (horizonte geométrico). */
+  customCoords: Coords;
+  /** Fecha de referencia ISO UTC; null = "ahora" (ajustado a la cobertura de datos). */
+  date: string | null;
+  setCustomCoords: (c: Coords) => void;
+  setDate: (iso: string | null) => void;
+
   scenarios: Scenario[];
   activeScenarioId: string | null;
   /** Ignora la petición si ya hay MAX_SCENARIOS o el id existe. TODO: avisar en la UI. */
@@ -18,6 +31,11 @@ export interface AppState {
 }
 
 export const useAppStore = create<AppState>()((set) => ({
+  customCoords: { lat: 0, lon: 0 },
+  date: null,
+  setCustomCoords: (customCoords) => set({ customCoords }),
+  setDate: (date) => set({ date }),
+
   scenarios: [],
   activeScenarioId: null,
   addScenario: (scenario) =>
