@@ -83,3 +83,9 @@ El `Makefile` tiene los targets `setup`, `data`, `web-dev`, `web-build`, `valida
 - LOLA (Lunar Orbiter Laser Altimeter) – DEM, vía PDS / LROC Quickmap.
 - Kernels SPICE de NAIF (efemérides planetarias y orientación lunar).
 - JPL Horizons como referencia de validación.
+
+## Créditos
+
+- Textura del globo lunar (`web/public/textures/moon/lroc_color_2k.jpg`): CGI Moon Kit,
+  NASA's Scientific Visualization Studio (https://svs.gsfc.nasa.gov/4720), a partir del mosaico de color
+  LROC WAC (Arizona State University). Uso solo visual.

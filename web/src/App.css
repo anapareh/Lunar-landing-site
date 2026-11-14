@@ -446,6 +446,70 @@ line.ref-horizon,
   color: var(--text-secondary);
 }
 
+/* ---------- Globo ---------- */
+.globe-box {
+  position: relative;
+  height: 440px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0d0d0d;
+  cursor: grab;
+  touch-action: none;
+}
+
+.globe-box:active {
+  cursor: grabbing;
+}
+
+.globe-box canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.globe-box canvas:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Etiquetas sobre fondo espacial: siempre tinta clara, sea cual sea el tema */
+.globe-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  font-size: 12px;
+  color: #f0efec;
+  background: rgba(13, 13, 13, 0.7);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.globe-legend {
+  margin-top: 10px;
+}
+
+.dot-site {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0efec;
+  box-shadow: 0 0 0 2px var(--text-muted);
+  flex: none;
+}
+
+button.ghost[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .globe-box {
+    height: 320px;
+  }
+}
+
 /* ---------- Tabla accesible ---------- */
 .table-view {
   margin-top: 8px;

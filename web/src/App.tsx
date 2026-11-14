@@ -6,7 +6,7 @@
  * recortada a la cobertura de la efeméride.
  * Futuro: lista de sitios curados con su horizonte LOLA, mapa, comparación de escenarios, detalle.
  */
-import { useMemo } from "react";
+import { Suspense, lazy, useMemo } from "react";
 import { DataStatusBanner } from "./components/common/DataStatusBanner";
 import { DateTimePicker } from "./components/config/DateTimePicker";
 import { MetricsSummary } from "./components/config/MetricsSummary";
@@ -14,10 +14,13 @@ import { ElevationChart } from "./components/detail/ElevationChart";
 import { FreeCoordinatesForm } from "./components/sites/FreeCoordinatesForm";
 import { useDataset, useWindowEphemeris } from "./hooks/useEphemeris";
 import { computeSiteMetrics } from "./lib/metrics";
-import { computeSunEarthSeries } from "./lib/sunEarth";
+import { computeSunEarthSeries, interpolateBody } from "./lib/sunEarth";
 import { formatUtc } from "./lib/format";
 import { addLunarDays, parseUtc, toIsoUtc } from "./lib/time";
 import { useAppStore } from "./store/useAppStore";
+
+// three.js es pesado: el globo se descarga aparte, después de la primera pintura.
+const LunarGlobe = lazy(() => import("./components/map/LunarGlobe"));
 
 const CHART_STEP_MINUTES = 20;
 
@@ -53,6 +56,12 @@ export default function App() {
     }
   }, [ephemeris, customCoords, at, windowEnd]);
 
+  const bodies = useMemo(() => {
+    if (!ephemeris || !at) return { sun: null, earth: null };
+    const t = parseUtc(at);
+    return { sun: interpolateBody(ephemeris, "sun", t), earth: interpolateBody(ephemeris, "earth", t) };
+  }, [ephemeris, at]);
+
   const error = ds.status === "error" ? ds.message : (loadError ?? result?.error ?? null);
   const synthetic = ds.status === "ready" && ds.synthetic;
 
@@ -77,7 +86,10 @@ export default function App() {
             </div>
           </section>
 
-          <section className="zone zone-comparison" aria-label="Gráfica">
+          <section className="zone zone-comparison" aria-label="Globo y gráfica">
+            <Suspense fallback={<div className="card globe-card"><p className="note">Cargando el globo 3D…</p></div>}>
+              <LunarGlobe sunDir={bodies.sun} earthDir={bodies.earth} site={customCoords} onPick={setCustomCoords} />
+            </Suspense>
             {result?.series && <ElevationChart series={result.series} profile={null} at={at} />}
             {truncated && windowEnd && (
               <p className="note">La ventana se recorta: los datos cargados terminan el {formatUtc(windowEnd)}.</p>

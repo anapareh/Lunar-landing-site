@@ -17,6 +17,9 @@ decisiones con fecha y motivo. Plan completo acordado: ver README y `architectur
 | D-008 | 2026-11-14 | Unidad de comparación = escenario (sitio + fecha), máx. 4 | El enunciado pide evaluar fechas alternativas en el mismo sitio |
 | D-009 | 2026-11-14 | Mapa: fondo estático pregenerado + marcadores con `d3-geo`; WMTS de Moon Trek solo como extra | Las proyecciones polares en WMTS son complejas y el CORS no está confirmado |
 | D-010 | 2026-11-14 | Despliegue en Vercel (root `web/`); las cargas usan `BASE_URL` para poder pasar a GitHub Pages | Previsualizaciones por PR |
+| D-011 | 2026-11-14 | Mapa principal = **globo lunar 3D** (three.js, carga diferida) iluminado desde la dirección del Sol, con marcadores de Sol/Tierra y selección por clic. Sustituye al mapa 2D estático de D-009 como vista principal | Más visual (objetivo 5) y sirve también para elegir coordenadas |
+| D-012 | 2026-11-14 | Textura del globo: `lroc_color_2k.jpg` del CGI Moon Kit (NASA SVS, mosaico LROC WAC de ASU), con crédito visible. Solo visual: los cálculos no la usan | La propia fuente avisa de que está "optimizada para la estética, no para ciencia" |
+| D-013 | 2026-11-14 | La gráfica de elevación amplía el eje vertical cuando todo ocurre cerca del horizonte, y lo indica | En el polo sur el Sol se mueve en pocos grados; con −90..90 la gráfica es una línea plana |
 
 ## Pendiente de medir / decidir durante el evento
 

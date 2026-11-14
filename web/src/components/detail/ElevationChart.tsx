@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { HorizonProfile, SunEarthSeries } from "../../types";
 import { horizonElevationAt } from "../../lib/horizon";
+import { elevationAxis } from "../../lib/chartScale";
 import { formatDayMonth, formatDeg, formatUtc } from "../../lib/format";
 import { MS_PER_DAY, parseUtc } from "../../lib/time";
 
@@ -88,6 +89,9 @@ export function ElevationChart({ series, profile, at }: ElevationChartProps) {
   if (rows.length === 0) return null;
   const t0 = rows[0].t;
   const t1 = rows[rows.length - 1].t;
+  const axis = elevationAxis(rows.flatMap((r) => [r.sun, r.earth, r.sunHorizon ?? 0, r.earthHorizon ?? 0]));
+  const decimals = axis.step < 0.25 ? 1 : axis.step < 1 ? 2 : 0;
+  const tickFormat = new Intl.NumberFormat("es-ES", { maximumFractionDigits: decimals });
   const tableRows = rows.filter((r) => (r.t - t0) % (6 * 3_600_000) === 0);
 
   return (
@@ -106,7 +110,16 @@ export function ElevationChart({ series, profile, at }: ElevationChartProps) {
           </li>
         </ul>
       </figcaption>
-      <p className="chart-caption">Un día lunar desde el {formatUtc(at)}</p>
+      <p className="chart-caption">
+        Un día lunar desde el {formatUtc(at)}
+        {axis.zoomed && (
+          <>
+            {" · "}
+            <strong>Eje vertical ampliado</strong> ({tickFormat.format(axis.domain[0])}° a {tickFormat.format(axis.domain[1])}°): el Sol y
+            la Tierra se mueven cerca del horizonte
+          </>
+        )}
+      </p>
 
       <div className="chart-box">
         <ResponsiveContainer width="100%" height="100%">
@@ -123,11 +136,12 @@ export function ElevationChart({ series, profile, at }: ElevationChartProps) {
               tickLine={false}
             />
             <YAxis
-              domain={[-90, 90]}
-              ticks={[-90, -45, 0, 45, 90]}
-              tickFormatter={(v: number) => `${v}°`}
+              domain={axis.domain}
+              ticks={axis.ticks}
+              allowDataOverflow
+              tickFormatter={(v: number) => `${tickFormat.format(v)}°`}
               className="chart-axis"
-              width={44}
+              width={48}
               tickLine={false}
               axisLine={false}
             />
