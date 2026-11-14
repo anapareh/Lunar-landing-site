@@ -1,42 +1,43 @@
 /*
- * Tema HUD (estética de web/estetica.html), solo oscuro.
- * - Neón (cian/ámbar/rojo/esmeralda): bordes, brillos, textos y decoración.
- * - Series de datos (líneas de la gráfica): pasos más apagados que pasan el validador de paleta
- *   sobre el fondo void (dataviz/validate_palette.js, modo oscuro, superficie #03050a).
+ * Tema "consola de dinámica de vuelo" (referencia: docs/design/estetica.html), solo oscuro.
+ * - Paleta de la maqueta para superficies, textos, marcadores y estados.
+ * - Series de datos (líneas de la gráfica): pasos que pasan el validador de paleta sobre la
+ *   superficie de los paneles (#11161f); los colores exactos de la maqueta quedan para marcadores.
  */
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Orbitron", "Segoe UI", sans-serif;
-  --font-sans: "Rajdhani", system-ui, "Segoe UI", sans-serif;
+  --font-sans: "Inter", system-ui, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
 
-  --color-void: #03050a;
-  --color-hud-cyan: #00f0ff;
-  --color-hud-amber: #ffaa00;
-  --color-hud-red: #ff3355;
-  --color-hud-emerald: #00ff9d;
+  --color-obsidian: #0a0d12;
+  --color-surface: #11161f;
+  --color-panel: #161d29;
+  --color-borderline: #242f40;
+  --color-steel: #8b9bb4;
+  --color-telemetry: #eef2f6;
+  --color-solar: #f59e0b;
+  --color-earth: #38bdf8;
+  --color-nominal: #10b981;
+  --color-critical: #ef4444;
 
   /* Series de datos validadas */
   --color-series-sun: #c98500;
-  --color-series-earth: #0fa3c2;
+  --color-series-earth: #279ad0;
 }
 
 :root {
   color-scheme: dark;
-  --cyan: #00f0ff;
-  --amber: #ffaa00;
-  --red: #ff3355;
-  --emerald: #00ff9d;
 }
 
 html,
 body {
-  background-color: #03050a;
-  color: #e2e8f0;
+  background-color: #0a0d12;
+  color: #eef2f6;
 }
 
 body {
   margin: 0;
   overflow-x: hidden;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }

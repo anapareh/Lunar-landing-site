@@ -1,12 +1,10 @@
 /**
- * Radar 2D del terminador: dónde es de día en la Luna en el instante mostrado.
+ * Terminador 2D: dónde es de día en la Luna en el instante mostrado.
  * - Proyección GLOBAL (equirectangular, lon 0 en el centro) o POLO SUR (azimutal equidistante,
  *   de 90° S a 60° S, lon 0 arriba y lon 90° E a la derecha, igual que la vista "Polo sur" del globo).
  * - Día/noche por el terminador geométrico (dirección real del Sol, sin relieve): orientativo a
  *   escala global. Las métricas del punto usan su horizonte (lib/horizon.ts).
- * - Marcas: punto subsolar (ámbar), punto sub-terrestre (cian), punto elegido (esmeralda).
- * - Clic para fijar coordenadas.
- * Fondo: textura NASA SVS (solo visual).
+ * - Marcas: punto subsolar (ámbar), punto sub-terrestre (azul), sitio (esmeralda). Clic para fijar.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Vector3 } from "../../types";
@@ -24,9 +22,10 @@ export interface RadarTerminatorProps {
 const W = 224; // px CSS
 const H = 112;
 const POLAR_SPAN = 30; // grados de colatitud mostrados en la vista polar
-const TEXTURE_URL = `${import.meta.env.BASE_URL}textures/moon/lroc_color_2k.jpg`;
-const SRC_W = 512;
-const SRC_H = 256;
+
+const DAY: [number, number, number] = [0x27, 0x31, 0x42]; // #273142
+const NIGHT: [number, number, number] = [0x0d, 0x11, 0x18]; // #0d1118
+const OUTSIDE: [number, number, number] = [0x0a, 0x0d, 0x12]; // #0a0d12
 
 /** Lat/lon del punto (x, y) en px CSS, o null si cae fuera del mapa. */
 function unproject(p: RadarProjection, x: number, y: number): { lat: number; lon: number } | null {
@@ -50,49 +49,25 @@ function project(p: RadarProjection, lat: number, lon: number): { x: number; y: 
   return { x: W / 2 + r * Math.sin(a), y: H / 2 - r * Math.cos(a) };
 }
 
-/** Normales y píxel de textura precalculados por píxel de salida. */
+/** Normales precalculadas por píxel de salida (NaN fuera del mapa). */
 function buildGrid(p: RadarProjection, dpr: number) {
   const w = Math.round(W * dpr);
   const h = Math.round(H * dpr);
-  const normals = new Float32Array(w * h * 3);
-  const srcIdx = new Int32Array(w * h).fill(-1);
+  const normals = new Float32Array(w * h * 3).fill(Number.NaN);
   for (let j = 0; j < h; j++) {
     for (let i = 0; i < w; i++) {
       const ll = unproject(p, (i + 0.5) / dpr, (j + 0.5) / dpr);
-      const k = j * w + i;
-      if (!ll) continue;
-      const n = surfaceNormal(ll.lat, ll.lon);
-      normals.set(n, k * 3);
-      const sx = Math.min(SRC_W - 1, Math.floor(((ll.lon + 180) / 360) * SRC_W));
-      const sy = Math.min(SRC_H - 1, Math.floor(((90 - ll.lat) / 180) * SRC_H));
-      srcIdx[k] = sy * SRC_W + sx;
+      if (ll) normals.set(surfaceNormal(ll.lat, ll.lon), (j * w + i) * 3);
     }
   }
-  return { w, h, normals, srcIdx };
+  return { w, h, normals };
 }
 
 export function RadarTerminator({ sunDir, earthDir, site, onPick }: RadarTerminatorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [proj, setProj] = useState<RadarProjection>("global");
-  const [src, setSrc] = useState<Uint8ClampedArray | null>(null);
   const dpr = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
   const grid = useMemo(() => buildGrid(proj, dpr), [proj, dpr]);
-
-  // Textura reducida a SRC_W×SRC_H para muestrear
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      c.width = SRC_W;
-      c.height = SRC_H;
-      const ctx = c.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0, SRC_W, SRC_H);
-      setSrc(ctx.getImageData(0, 0, SRC_W, SRC_H).data);
-    };
-    img.src = TEXTURE_URL;
-  }, []);
-
   const sub = useMemo(() => (sunDir ? subPoint(sunDir) : null), [sunDir]);
   const subE = useMemo(() => (earthDir ? subPoint(earthDir) : null), [earthDir]);
 
@@ -100,39 +75,30 @@ export function RadarTerminator({ sunDir, earthDir, site, onPick }: RadarTermina
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const { w, h, normals, srcIdx } = grid;
+    const { w, h, normals } = grid;
     canvas.width = w;
     canvas.height = h;
     const out = ctx.createImageData(w, h);
     const d = out.data;
     const s = sunDir ? Math.hypot(...sunDir) : 1;
-    const sx = sunDir ? sunDir[0] / s : 0;
-    const sy = sunDir ? sunDir[1] / s : 0;
-    const sz = sunDir ? sunDir[2] / s : 0;
+    const [sx, sy, sz] = sunDir ? [sunDir[0] / s, sunDir[1] / s, sunDir[2] / s] : [0, 0, 0];
     for (let k = 0; k < w * h; k++) {
+      const nx = normals[k * 3];
+      const c = Number.isNaN(nx)
+        ? OUTSIDE
+        : !sunDir || nx * sx + normals[k * 3 + 1] * sy + normals[k * 3 + 2] * sz > 0
+          ? DAY
+          : NIGHT;
       const o = k * 4;
-      const si = srcIdx[k];
-      if (si < 0) {
-        d[o] = 3; d[o + 1] = 6; d[o + 2] = 13; d[o + 3] = 255;
-        continue;
-      }
-      const base = src ? src[si * 4] * 0.299 + src[si * 4 + 1] * 0.587 + src[si * 4 + 2] * 0.114 : 120;
-      const lit = sunDir ? normals[k * 3] * sx + normals[k * 3 + 1] * sy + normals[k * 3 + 2] * sz > 0 : true;
-      if (lit) {
-        d[o] = base * 0.92; d[o + 1] = base; d[o + 2] = Math.min(255, base * 1.05 + 10);
-      } else {
-        d[o] = base * 0.16 + 4; d[o + 1] = base * 0.22 + 10; d[o + 2] = base * 0.32 + 24;
-      }
-      d[o + 3] = 255;
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
     }
     ctx.putImageData(out, 0, 0);
 
-    // Superposiciones (px CSS escalados)
     ctx.save();
     ctx.scale(w / W, h / H);
     ctx.lineWidth = 1;
     if (proj === "global") {
-      ctx.strokeStyle = "rgba(0,240,255,0.35)";
+      ctx.strokeStyle = "rgba(139, 155, 180, 0.35)";
       ctx.setLineDash([2, 2]);
       for (const lon of [-90, 90]) {
         const x = ((lon + 180) / 360) * W;
@@ -140,7 +106,7 @@ export function RadarTerminator({ sunDir, earthDir, site, onPick }: RadarTermina
       }
       ctx.setLineDash([]);
     } else {
-      ctx.strokeStyle = "rgba(0,240,255,0.35)";
+      ctx.strokeStyle = "#242f40";
       const R = H / 2 - 4;
       for (const f of [1 / 3, 2 / 3, 1]) {
         ctx.beginPath(); ctx.arc(W / 2, H / 2, R * f, 0, Math.PI * 2); ctx.stroke();
@@ -152,28 +118,27 @@ export function RadarTerminator({ sunDir, earthDir, site, onPick }: RadarTermina
       ctx.fillStyle = color;
       ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2); ctx.fill();
     };
-    dot(sub, "#ffaa00", 3);
-    dot(subE, "#00f0ff", 2.5);
+    dot(sub, "#f59e0b", 3);
+    dot(subE, "#38bdf8", 2.5);
     const sp = project(proj, site.lat, site.lon);
     if (sp) {
-      ctx.strokeStyle = "#00ff9d";
+      ctx.strokeStyle = "#10b981";
       ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, 4.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 4, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
-  }, [grid, src, sunDir, sub, subE, site, proj]);
+  }, [grid, sunDir, sub, subE, site, proj]);
 
-  const fmt = (ll: { lat: number; lon: number } | null) =>
-    ll ? `${ll.lat.toFixed(1)}°, ${ll.lon.toFixed(1)}°` : "—";
+  const fmt = (ll: { lat: number; lon: number } | null) => (ll ? `${ll.lat.toFixed(1)}°, ${ll.lon.toFixed(1)}°` : "—");
 
   return (
-    <div className="pointer-events-auto hud-box rounded-lg p-1.5 w-[236px] shrink-0">
-      <div className="flex items-center justify-between text-[9px] font-mono text-cyan-300/80 px-1 mb-1">
-        <span>RADAR TERMINADOR 2D</span>
+    <div className="pointer-events-auto console-panel rounded-md p-2 w-[240px] shrink-0">
+      <div className="flex items-center justify-between text-[10px] font-mono text-steel mb-1.5">
+        <span>TERMINADOR 2D</span>
         <button
           type="button"
           onClick={() => setProj(proj === "global" ? "south" : "global")}
-          className="text-amber-300 hover:underline"
+          className="text-sky-400 hover:underline font-semibold"
           aria-label={`Cambiar proyección (ahora: ${proj === "global" ? "global" : "polo sur"})`}
         >
           {proj === "global" ? "GLOBAL" : "POLO SUR"}
@@ -182,7 +147,7 @@ export function RadarTerminator({ sunDir, earthDir, site, onPick }: RadarTermina
       <canvas
         ref={canvasRef}
         style={{ width: W, height: H }}
-        className="block rounded border border-cyan-500/20 cursor-crosshair"
+        className="block rounded bg-obsidian border border-borderline cursor-crosshair"
         role="img"
         aria-label={`Mapa de día y noche lunar (${proj === "global" ? "global" : "polo sur"}). Punto subsolar ${fmt(sub)}; punto sub-terrestre ${fmt(subE)}. Clic para fijar coordenadas.`}
         onClick={(e) => {
@@ -191,9 +156,16 @@ export function RadarTerminator({ sunDir, earthDir, site, onPick }: RadarTermina
           if (ll) onPick({ lat: Math.round(ll.lat * 100) / 100, lon: Math.round(ll.lon * 100) / 100 });
         }}
       />
-      <div className="mt-1 px-1 flex justify-between text-[9px] font-mono">
-        <span className="text-amber-300">● SUBSOLAR {fmt(sub)}</span>
-        <span className="text-cyan-300">● SUBTIERRA</span>
+      <div className="flex items-center justify-between text-[9px] font-mono text-steel mt-1">
+        <span className="flex items-center gap-1" title={`Punto subsolar: ${fmt(sub)}`}>
+          <i className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" aria-hidden="true" />Subsolar
+        </span>
+        <span className="flex items-center gap-1" title={`Punto sub-terrestre: ${fmt(subE)}`}>
+          <i className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" aria-hidden="true" />Subterrestre
+        </span>
+        <span className="flex items-center gap-1">
+          <i className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" aria-hidden="true" />Sitio
+        </span>
       </div>
     </div>
   );

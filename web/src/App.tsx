@@ -29,6 +29,7 @@ import { formatUtc } from "./lib/format";
 import { EARTH_RADIUS_KM, SUN_RADIUS_KM, applyHorizon } from "./lib/horizon";
 import { computeSiteMetrics } from "./lib/metrics";
 import { computeSunEarthSeries, interpolateBody } from "./lib/sunEarth";
+import { subPoint } from "./lib/geo";
 import { addLunarDays, parseUtc, toIsoUtc } from "./lib/time";
 import { useAppStore } from "./store/useAppStore";
 
@@ -38,9 +39,9 @@ const LunarGlobe = lazy(() => import("./components/map/LunarGlobe"));
 const CHART_STEP_MINUTES = 20;
 
 const VIEWS: [GlobeView, string][] = [
-  ["site", "🎯 CENTRAR"],
-  ["southPole", "POLO SUR"],
-  ["nearside", "CARA VISIBLE"],
+  ["site", "Centrar"],
+  ["southPole", "Polo sur"],
+  ["nearside", "Cara visible"],
 ];
 
 function clampIso(iso: string, min: string, max: string): string {
@@ -52,7 +53,7 @@ export default function App() {
   const {
     customCoords, date, setCustomCoords, setDate,
     cursor, setCursor, playing, setPlaying, speed, setSpeed,
-    mode, hudCollapsed, drawerOpen, setDrawerOpen, globeView, requestGlobeView,
+    mode, hudCollapsed, showGrid, drawerOpen, setDrawerOpen, globeView, requestGlobeView,
   } = useAppStore();
   const coverage = ds.status === "ready" ? ds.coverage : null;
 
@@ -102,6 +103,9 @@ export default function App() {
     return { sun: interpolateBody(ephemeris, "sun", t), earth: interpolateBody(ephemeris, "earth", t) };
   }, [ephemeris, now]);
 
+  // Libración: punto de la Luna bajo la Tierra
+  const subEarth = useMemo(() => (bodies.earth ? subPoint(bodies.earth) : null), [bodies.earth]);
+
   // La gráfica (pesada) sigue al cursor con menos prioridad
   const chartCursor = useDeferredValue(now);
 
@@ -114,25 +118,26 @@ export default function App() {
   };
 
   return (
-    <div className="scanlines font-sans antialiased text-slate-200 flex flex-col min-h-screen lg:h-screen lg:overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-100">
+    <div className="font-sans antialiased text-telemetry flex flex-col min-h-screen lg:h-screen lg:overflow-hidden selection:bg-sky-500/30 selection:text-white">
       {/* Escenario 3D a pantalla completa */}
-      <div className="fixed inset-0 z-0 bg-void">
-        <Suspense fallback={<p className="p-6 font-mono text-xs text-cyan-300/70">CARGANDO GLOBO 3D…</p>}>
+      <div className="fixed inset-0 z-0 bg-obsidian">
+        <Suspense fallback={<p className="p-6 font-mono text-xs text-steel">Cargando globo 3D…</p>}>
           <LunarGlobe
             sunDir={bodies.sun}
             earthDir={bodies.earth}
             site={customCoords}
             sunVisible={metrics?.sun.visibleNow ?? null}
             earthVisible={metrics?.earth.visibleNow ?? null}
+            showGrid={showGrid}
             onPick={setCustomCoords}
             viewRequest={globeView}
           />
         </Suspense>
       </div>
 
-      <HudHeader />
+      <HudHeader synthetic={synthetic} />
 
-      {ds.status === "loading" && <p className="relative z-10 p-4 font-mono text-xs text-cyan-300/80">CARGANDO DATOS…</p>}
+      {ds.status === "loading" && <p className="relative z-10 p-4 font-mono text-xs text-steel">Cargando datos…</p>}
 
       {coverage && at && now && (
         <>
@@ -143,17 +148,19 @@ export default function App() {
             <div className="order-first lg:order-none flex-1 flex flex-col justify-between gap-2 min-h-[55vh] lg:min-h-0 pointer-events-none">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="pointer-events-auto hud-box rounded-lg px-3 py-1.5 flex flex-wrap items-center gap-3">
+                  <div className="pointer-events-auto console-panel rounded-md px-3 py-2 flex flex-wrap items-center gap-3">
                     <div>
-                      <div className="text-[9px] font-mono text-cyan-400/80 tracking-widest">OBJETIVO ACTIVO · {formatUtc(now)}</div>
-                      <div className="font-display text-xs sm:text-sm font-bold text-white tracking-wide flex flex-wrap items-center gap-2">
-                        <span>COORDENADAS LIBRES</span>
-                        <span className="text-xs font-mono text-emerald-400">[{formatLatLon(customCoords)}]</span>
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-steel tabular-nums">
+                        Objetivo seleccionado · {formatUtc(now)}
+                      </div>
+                      <div className="text-xs sm:text-sm font-semibold text-telemetry flex flex-wrap items-center gap-2 mt-0.5">
+                        <span>Coordenadas libres</span>
+                        <span className="text-xs font-mono text-sky-400 tabular-nums">{formatLatLon(customCoords)}</span>
                       </div>
                     </div>
                     <div className="flex gap-1" role="group" aria-label="Vista del globo">
                       {VIEWS.map(([v, label]) => (
-                        <button key={v} type="button" onClick={() => requestGlobeView(v)} className="btn-sci px-2 py-1 rounded text-[11px] font-mono">
+                        <button key={v} type="button" onClick={() => requestGlobeView(v)} className="btn-control px-2.5 py-1 rounded text-xs font-medium">
                           {label}
                         </button>
                       ))}
@@ -161,14 +168,15 @@ export default function App() {
                   </div>
 
                   {metrics && !metrics.earth.visibleNow && (
-                    <div role="status" className="pointer-events-auto bg-rose-950/90 border border-rose-500 text-rose-200 px-3 py-1.5 rounded-lg text-xs font-mono font-bold shadow-[0_0_20px_rgba(255,51,85,0.45)] flex items-center gap-2 animate-pulse">
-                      <span aria-hidden="true">⚠</span> SIN ENLACE DIRECTO CON LA TIERRA EN ESTE INSTANTE
+                    <div role="status" className="pointer-events-auto bg-red-950/90 border border-red-500/70 text-red-100 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 shadow-lg">
+                      <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" aria-hidden="true" />
+                      Tierra bajo el horizonte local — sin enlace directo (DTE) en este instante
                     </div>
                   )}
                 </div>
                 <DataStatusBanner synthetic={synthetic} error={error} />
                 {truncated && windowEnd && (
-                  <p className="pointer-events-auto self-start hud-box rounded px-2 py-1 text-[11px] font-mono text-amber-200">
+                  <p className="pointer-events-auto self-start console-panel rounded-md px-2 py-1 text-[11px] font-mono text-amber-300">
                     Ventana recortada: los datos cargados terminan el {formatUtc(windowEnd)}.
                   </p>
                 )}
@@ -176,15 +184,17 @@ export default function App() {
 
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <RadarTerminator sunDir={bodies.sun} earthDir={bodies.earth} site={customCoords} onPick={setCustomCoords} />
-                <div className="hidden sm:flex pointer-events-auto hud-box rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-cyan-200/75 items-center gap-3">
-                  <span>🖱 Arrastrar: girar</span>
-                  <span>⚙ Rueda: zoom</span>
-                  <span>⌖ Clic: fijar punto</span>
+                <div className="hidden sm:flex pointer-events-auto console-panel rounded-md px-3 py-1.5 text-[11px] text-steel items-center gap-3">
+                  <span>Arrastrar: rotar</span>
+                  <span className="text-borderline">|</span>
+                  <span>Rueda: zoom</span>
+                  <span className="text-borderline">|</span>
+                  <span>Clic en la esfera: fijar punto</span>
                 </div>
               </div>
             </div>
 
-            <AnalysisPanel metrics={metrics} mode={mode} hidden={hudCollapsed} />
+            <AnalysisPanel metrics={metrics} mode={mode} subEarth={subEarth} hidden={hudCollapsed} />
           </main>
 
           <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>

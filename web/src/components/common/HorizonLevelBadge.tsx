@@ -7,12 +7,12 @@ const TEXT: Record<HorizonLevel, { label: string; title: string; cls: string }> 
   dem: {
     label: "HORIZONTE LOLA",
     title: "Perfil de horizonte calculado a partir del relieve LOLA",
-    cls: "bg-emerald-500/15 text-emerald-200 border-emerald-400/50",
+    cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   },
   geometric: {
     label: "HORIZONTE GEOMÉTRICO",
     title: "Horizonte a 0°, como si la Luna fuera una esfera lisa. El relieve real puede adelantar el ocaso.",
-    cls: "bg-slate-800/80 text-slate-300 border-slate-600",
+    cls: "bg-obsidian text-steel border-borderline",
   },
 };
 

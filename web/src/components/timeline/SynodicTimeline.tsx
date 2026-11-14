@@ -50,19 +50,19 @@ export function SynodicTimeline({ sun, earth, cursor, onScrub }: SynodicTimeline
         const s = sun[i];
         const lit = isVisible(s);
         const strength = 0.4 + 0.6 * Math.min(1, Math.max(0, s.elevation_deg) / 45);
-        ctx.fillStyle = lit ? `rgba(255,170,0,${(s.visible_fraction * strength).toFixed(3)})` : "#060a14";
+        ctx.fillStyle = lit ? `rgba(245,158,11,${(s.visible_fraction * strength).toFixed(3)})` : "#0f141d";
         ctx.fillRect(c * colW, 0, colW + 0.6, h * 0.5);
-        ctx.fillStyle = isVisible(earth[i]) ? "rgba(0,240,255,0.8)" : "#2a0a14";
+        ctx.fillStyle = isVisible(earth[i]) ? "#0284c7" : "#2a1219";
         ctx.fillRect(c * colW, h * 0.56, colW + 0.6, h * 0.44);
       });
       // Marcas de día (cada 24 h desde el inicio)
-      ctx.fillStyle = "rgba(3,5,10,0.55)";
+      ctx.fillStyle = "rgba(10,13,18,0.55)";
       for (let t = t0 + MS_PER_DAY; t < t1; t += MS_PER_DAY) {
         ctx.fillRect(fractionOf(t, t0, t1) * w, 0, 1, h);
       }
       // Cabezal
       const x = fractionOf(cursorMs, t0, t1) * w;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#eef2f6";
       ctx.fillRect(x - 1, 0, 2, h);
     };
     draw();
@@ -84,10 +84,10 @@ export function SynodicTimeline({ sun, earth, cursor, onScrub }: SynodicTimeline
   return (
     <div className="flex-1 flex flex-col justify-center min-w-[240px]">
       <div className="flex flex-wrap items-center justify-between gap-x-3 text-[10px] font-mono mb-1">
-        <span className="text-slate-400">
-          CICLO DE UN DÍA LUNAR · <span className="text-amber-300">■ LUZ</span> · <span className="text-cyan-300">■ TIERRA VISIBLE</span>
+        <span className="text-steel">
+          CICLO SINÓDICO — arrastrar para desplazar · <span className="text-amber-400">■ luz</span> · <span className="text-sky-400">■ Tierra visible</span>
         </span>
-        <span className="text-amber-300 font-semibold">
+        <span className="text-amber-400 font-medium tabular-nums">
           DÍA {nf1.format(offsetDays)} DE {nf1.format(SYNODIC_MONTH_DAYS)}
         </span>
       </div>
@@ -100,7 +100,7 @@ export function SynodicTimeline({ sun, earth, cursor, onScrub }: SynodicTimeline
         aria-valuemax={totalHours}
         aria-valuenow={Math.round((cursorMs - t0) / MS_PER_HOUR)}
         aria-valuetext={formatUtc(cursorMs)}
-        className="relative h-6 bg-void rounded border border-cyan-500/35 overflow-hidden cursor-ew-resize touch-none"
+        className="relative h-5 bg-obsidian rounded border border-borderline overflow-hidden cursor-ew-resize touch-none"
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           scrubAt(e.clientX);

@@ -24,6 +24,7 @@ decisiones con fecha y motivo. Plan completo acordado: ver README y `architectur
 | D-015 | 2026-11-14 | Globo holográfico: Sol y Tierra como esferas en su dirección real (no a escala), rayo solar si el Sol es visible desde el punto y enlace DTE cian/rojo según la visibilidad calculada. Retícula, borde, estrellas y anillos son decorativos | Representación de la referencia, alimentada con datos propios |
 | D-016 | 2026-11-14 | **Simulación** del paso del tiempo (1 h/s, 6 h/s, 1 d/s) moviendo un cursor dentro de la ventana; franja del día lunar arrastrable; **radar del terminador** 2D (global / polo sur) con terminador geométrico | Objetivo 6 del reto; el radar es orientativo a escala global, las métricas usan el horizonte del punto |
 | D-017 | 2026-11-14 | Líneas de la gráfica en tonos validados (Sol `#c98500`, Tierra `#0fa3c2`); los neón de la referencia solo en decoración | Los neón fallan la banda de luminosidad del validador de paleta sobre el fondo void |
+| D-018 | 2026-11-14 | **Sustituye el estilo HUD de D-014/D-015** por la nueva maqueta: consola "LUNAR-FDS" sobria (Inter + JetBrains Mono, obsidiana/acero, solar `#f59e0b`, Tierra `#38bdf8`), sin brillos ni animaciones decorativas; retícula selenográfica conmutable (# GRID); radar con tonos planos. Gráfica con `#c98500` / `#279ad0` (validados sobre `#11161f`). Se añade la libración (punto sub-terrestre) desde la efeméride. Siguen fuera los valores inventados de la maqueta | Cambio de maqueta de la usuaria |
 
 ## Pendiente de medir / decidir durante el evento
 

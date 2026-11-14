@@ -46,6 +46,9 @@ export interface AppState {
   setMode: (m: AppMode) => void;
   hudCollapsed: boolean;
   toggleHud: () => void;
+  /** Retícula selenográfica del globo. */
+  showGrid: boolean;
+  toggleGrid: () => void;
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
   /** Petición de vista para el globo; `n` cambia en cada petición. */
@@ -77,6 +80,8 @@ export const useAppStore = create<AppState>()((set) => ({
   setMode: (mode) => set({ mode }),
   hudCollapsed: false,
   toggleHud: () => set((s) => ({ hudCollapsed: !s.hudCollapsed })),
+  showGrid: true,
+  toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
   drawerOpen: false,
   setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
   globeView: { view: "site", n: 0 },

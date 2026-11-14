@@ -55,16 +55,16 @@ function ChartTooltip({ active, label, payload }: TooltipProps) {
   if (!active || !payload?.length || typeof label !== "number") return null;
   const get = (k: string) => payload.find((p) => p.dataKey === k)?.value as number | undefined;
   return (
-    <div className="hud-box rounded px-2.5 py-1.5 text-xs font-mono shadow-[0_0_16px_rgba(0,240,255,0.25)]">
-      <div className="text-cyan-300/80 mb-1">{formatUtc(label)}</div>
+    <div className="console-panel rounded-md px-2.5 py-1.5 text-xs font-mono">
+      <div className="text-steel mb-1 tabular-nums">{formatUtc(label)}</div>
       {SERIES.map((s) => {
         const v = get(s.key);
         const h = get(`${s.key}Horizon`);
         return v === undefined ? null : (
           <div key={s.key} className="flex items-center gap-2">
             <span className={`key key-${s.key}`} aria-hidden="true" />
-            <strong className="text-white">{formatDeg(v)}</strong>
-            <span className="text-slate-400">
+            <strong className="text-telemetry tabular-nums">{formatDeg(v)}</strong>
+            <span className="text-steel">
               {s.name}
               {h !== undefined && ` · horizonte ${formatDeg(h)}`}
             </span>
@@ -102,19 +102,19 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
     <figure className="m-0">
       <figcaption className="flex flex-wrap items-center justify-between gap-2 mb-1">
         <div>
-          <h2 className="font-display text-xs font-bold tracking-wider text-cyan-300">ELEVACIÓN DEL SOL Y LA TIERRA</h2>
-          <p className="text-[11px] font-mono text-slate-400">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-telemetry">Elevación del Sol y la Tierra</h2>
+          <p className="text-[11px] text-steel">
             Un día lunar desde el {formatUtc(at)}
             {axis.zoomed && (
               <>
                 {" · "}
-                <strong className="text-amber-300">EJE AMPLIADO</strong> ({tickFormat.format(axis.domain[0])}° a{" "}
+                <strong className="text-amber-400 font-semibold">Eje ampliado</strong> ({tickFormat.format(axis.domain[0])}° a{" "}
                 {tickFormat.format(axis.domain[1])}°): todo ocurre cerca del horizonte
               </>
             )}
           </p>
         </div>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-slate-300 list-none m-0 p-0" aria-label="Leyenda">
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 list-none m-0 p-0" aria-label="Leyenda">
           {SERIES.map((s) => (
             <li key={s.key} className="flex items-center gap-1.5">
               <span className={`key key-${s.key}`} aria-hidden="true" /> {s.name}
@@ -192,11 +192,11 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
       </div>
 
       <details className="mt-1 text-xs font-mono">
-        <summary className="cursor-pointer text-cyan-300/80 hover:text-cyan-200">Ver los datos en una tabla (cada 6 h)</summary>
+        <summary className="cursor-pointer text-steel hover:text-telemetry">Ver los datos en una tabla (cada 6 h)</summary>
         <div className="max-h-48 overflow-auto mt-1">
           <table className="w-full border-collapse tabular-nums">
             <thead>
-              <tr className="text-cyan-300 border-b border-cyan-500/30">
+              <tr className="text-steel border-b border-borderline">
                 <th scope="col" className="text-left py-1 px-2">Fecha (UTC)</th>
                 <th scope="col" className="text-left py-1 px-2">Sol</th>
                 <th scope="col" className="text-left py-1 px-2">Tierra</th>
@@ -204,7 +204,7 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
             </thead>
             <tbody>
               {tableRows.map((r) => (
-                <tr key={r.t} className="border-b border-slate-800/80 text-slate-200">
+                <tr key={r.t} className="border-b border-borderline/70 text-telemetry">
                   <td className="py-1 px-2">{formatUtc(r.t)}</td>
                   <td className="py-1 px-2">{formatDeg(r.sun)}</td>
                   <td className="py-1 px-2">{formatDeg(r.earth)}</td>

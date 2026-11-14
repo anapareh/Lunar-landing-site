@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LUNAR-EVAL // TACTICAL HOLOGRAPHIC COMMAND</title>
+  <title>LUNAR-FDS // Flight Dynamics &amp; Landing Site Analysis</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Sci-Fi & Technical Fonts: Orbitron, Rajdhani & JetBrains Mono -->
+  <!-- Aerospace Engineering Typography: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
@@ -19,20 +19,20 @@
       theme: {
         extend: {
           fontFamily: {
-            display: ['Orbitron', 'sans-serif'],
-            sans: ['Rajdhani', 'sans-serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            void: '#03050a',
-            hud: {
-              bg: 'rgba(6, 12, 24, 0.78)',
-              panel: 'rgba(8, 16, 32, 0.84)',
-              cyan: '#00f0ff',
-              amber: '#ffaa00',
-              red: '#ff3355',
-              emerald: '#00ff9d'
-            }
+            obsidian: '#0a0d12',
+            surface: '#11161f',
+            panel: '#161d29',
+            borderline: '#242f40',
+            steel: '#8b9bb4',
+            telemetry: '#eef2f6',
+            solar: '#f59e0b',
+            earth: '#38bdf8',
+            nominal: '#10b981',
+            critical: '#ef4444'
           }
         }
       }
@@ -40,412 +40,375 @@
   </script>
 
   <style>
-    :root {
-      --cyan: #00f0ff;
-      --amber: #ffaa00;
-      --red: #ff3355;
-      --emerald: #00ff9d;
-    }
-
     body {
-      background-color: #03050a;
-      color: #e2e8f0;
+      background-color: #0a0d12;
+      color: #eef2f6;
       overflow-x: hidden;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     }
 
-    /* Subtle CRT / Tactical Scanlines */
-    .scanlines::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(
-        rgba(18, 16, 16, 0) 50%,
-        rgba(0, 240, 255, 0.022) 50%
-      );
-      background-size: 100% 4px;
-      pointer-events: none;
-      z-index: 40;
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
     }
 
-    /* Custom Tactical Scrollbar */
+    /* Clean Engineering Scrollbar */
     ::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
+      width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(3, 5, 10, 0.8);
+      background: #0a0d12;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(0, 240, 255, 0.35);
-      border-radius: 2px;
+      background: #242f40;
+      border-radius: 3px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 240, 255, 0.75);
+      background: #384963;
     }
 
-    /* Holographic HUD Panel with Corner Brackets & Bevel */
-    .hud-box {
-      background: linear-gradient(145deg, rgba(8, 16, 32, 0.86) 0%, rgba(4, 9, 18, 0.92) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 240, 255, 0.22);
-      box-shadow: 0 0 25px rgba(0, 240, 255, 0.05), inset 0 0 20px rgba(0, 240, 255, 0.03);
-      position: relative;
+    /* Utilitarian Aerospace Console Panel */
+    .console-panel {
+      background-color: rgba(17, 22, 31, 0.90);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid #242f40;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     }
 
-    /* Corner tactical brackets */
-    .hud-corners::after {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      pointer-events: none;
-      background:
-        linear-gradient(to right, var(--cyan) 2px, transparent 2px) 0 0,
-        linear-gradient(to bottom, var(--cyan) 2px, transparent 2px) 0 0,
-        linear-gradient(to left, var(--cyan) 2px, transparent 2px) 100% 0,
-        linear-gradient(to bottom, var(--cyan) 2px, transparent 2px) 100% 0,
-        linear-gradient(to right, var(--cyan) 2px, transparent 2px) 0 100%,
-        linear-gradient(to top, var(--cyan) 2px, transparent 2px) 0 100%,
-        linear-gradient(to left, var(--cyan) 2px, transparent 2px) 100% 100%,
-        linear-gradient(to top, var(--cyan) 2px, transparent 2px) 100% 100%;
-      background-repeat: no-repeat;
-      background-size: 10px 10px;
-      opacity: 0.75;
+    /* Crisp Control Button */
+    .btn-control {
+      background-color: #161d29;
+      border: 1px solid #242f40;
+      color: #cbd5e1;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
-
-    .glow-cyan {
-      text-shadow: 0 0 10px rgba(0, 240, 255, 0.65);
-    }
-    .glow-amber {
-      text-shadow: 0 0 10px rgba(255, 170, 0, 0.65);
-    }
-    .glow-red {
-      text-shadow: 0 0 10px rgba(255, 51, 85, 0.65);
-    }
-    .glow-emerald {
-      text-shadow: 0 0 10px rgba(0, 255, 157, 0.65);
-    }
-
-    /* Tactical Button */
-    .btn-sci {
-      background: rgba(0, 240, 255, 0.08);
-      border: 1px solid rgba(0, 240, 255, 0.35);
-      color: #a5f3fc;
-      transition: all 0.2s ease;
-    }
-    .btn-sci:hover {
-      background: rgba(0, 240, 255, 0.2);
-      border-color: #00f0ff;
+    .btn-control:hover {
+      background-color: #1e2738;
+      border-color: #3b4d6b;
       color: #ffffff;
-      box-shadow: 0 0 14px rgba(0, 240, 255, 0.35);
     }
-    .btn-sci.active {
-      background: rgba(0, 240, 255, 0.25);
-      border-color: #00f0ff;
-      color: #ffffff;
-      box-shadow: 0 0 16px rgba(0, 240, 255, 0.45);
+    .btn-control.active {
+      background-color: #1e293b;
+      border-color: #38bdf8;
+      color: #f8fafc;
     }
 
-    /* Floating 3D HTML Labels */
+    /* Floating 3D Surface Pin Tags */
     .beacon-label {
       position: absolute;
-      transform: translate(-50%, -100%);
+      transform: translate(-50%, -115%);
       pointer-events: auto;
       cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.15s ease;
+      transition: opacity 0.15s ease, transform 0.12s ease;
       user-select: none;
     }
     .beacon-label:hover {
-      transform: translate(-50%, -105%) scale(1.06);
+      transform: translate(-50%, -120%) scale(1.04);
       z-index: 30;
+    }
+
+    /* Native datetime-local dark theme fix */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
     }
   </style>
 </head>
-<body class="scanlines font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-100 flex flex-col min-h-screen lg:h-screen lg:overflow-hidden">
+<body class="font-sans antialiased selection:bg-sky-500/30 selection:text-white flex flex-col min-h-screen lg:h-screen lg:overflow-hidden">
 
-  <!-- FULL-BLEED 3D HOLOGRAPHIC VIEWPORT BACKGROUND (Occupies entire screen on desktop, hero on mobile) -->
-  <div id="globe-stage" class="fixed inset-0 z-0 bg-void">
+  <!-- FULL-BLEED 3D ASTRODYNAMICS VIEWPORT -->
+  <div id="globe-stage" class="fixed inset-0 z-0 bg-obsidian">
     <canvas id="canvas-main-3d" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
-    <!-- Container for projected 3D surface beacon labels -->
+    <!-- Projected 3D surface site tags -->
     <div id="beacon-labels-layer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
   </div>
 
-  <!-- TOP AEROSPACE COMMAND HEADER -->
-  <header class="relative z-20 hud-box border-x-0 border-t-0 px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
-    <!-- Brand & System ID -->
+  <!-- TOP FLIGHT DYNAMICS HEADER -->
+  <header class="relative z-20 console-panel border-x-0 border-t-0 px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <!-- Mission Control Identity -->
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded bg-cyan-500/10 border border-cyan-400/60 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-        <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9" stroke-width="1.5" stroke-dasharray="4 2" />
-          <circle cx="12" cy="12" r="4" stroke-width="1.8" />
-          <path stroke-linecap="round" stroke-width="1.5" d="M12 1v3M12 20v3M1 12h3M20 12h3" />
+      <div class="w-8 h-8 rounded bg-panel border border-borderline flex items-center justify-center text-sky-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" stroke-width="1.75" />
+          <ellipse cx="12" cy="12" rx="11" ry="4" transform="rotate(-22 12 12)" stroke-width="1.25" stroke-dasharray="3 2" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
         </svg>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="font-display text-sm sm:text-base font-extrabold tracking-widest text-white glow-cyan">
-            LUNAR<span class="text-cyan-400">//</span>EVAL
+          <h1 class="text-sm font-semibold tracking-tight text-telemetry">
+            LUNAR-FDS
           </h1>
-          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/90 text-cyan-300 border border-cyan-500/50">
-            HOLO-CORE v4.0
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-panel text-steel border border-borderline">
+            SELENOCENTRIC EPHEMERIS v4.2
           </span>
         </div>
-        <p class="text-[11px] font-mono text-cyan-200/60 hidden sm:block">
-          SELENOCENTRIC TACTICAL RECONNAISSANCE &amp; LANDING TELEMETRY
+        <p class="text-[11px] text-steel hidden sm:block">
+          Evaluación de Sitios de Alunizaje, Iluminación Solar y Enlace Directo Tierra (DTE)
         </p>
       </div>
     </div>
 
-    <!-- Center 3D View Mode Switcher (Orbital Globe vs Surface Horizon) -->
-    <div class="flex items-center bg-void/90 p-1 rounded border border-cyan-500/30 text-xs font-mono">
-      <button id="btn-scene-globe" onclick="setSceneMode('globe')" class="btn-sci active px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold">
-        <span>🌐 GLOBO ORBITAL 3D</span>
-      </button>
-      <button id="btn-scene-surface" onclick="setSceneMode('surface')" class="btn-sci px-2.5 py-1 rounded flex items-center gap-1.5 font-semibold ml-1">
-        <span>⛰️ HORIZONTE SUPERFICIE</span>
-      </button>
-    </div>
-
-    <!-- Right Controls: Skill Mode + Panel Toggles + Comparison Modal -->
+    <!-- Center 3D View & Grid Controls -->
     <div class="flex items-center gap-2">
-      <!-- Tech / Edu Mode -->
-      <div class="bg-void/90 p-1 rounded border border-slate-700/80 flex items-center text-xs font-mono">
-        <button id="btn-mode-tech" onclick="setAppMode('tech')" class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 font-semibold transition-all">
-          TÉCNICO
+      <div class="flex items-center bg-obsidian p-0.5 rounded border border-borderline text-xs font-medium">
+        <button id="btn-scene-globe" onclick="setSceneMode('globe')" class="btn-control active px-2.5 py-1 rounded flex items-center gap-1.5">
+          <span>Globo Lunar 3D</span>
         </button>
-        <button id="btn-mode-edu" onclick="setAppMode('edu')" class="px-2 py-1 rounded text-slate-400 hover:text-white transition-all">
-          DIVULGATIVO
+        <button id="btn-scene-surface" onclick="setSceneMode('surface')" class="btn-control px-2.5 py-1 rounded flex items-center gap-1.5 ml-0.5">
+          <span>Horizonte Local</span>
         </button>
       </div>
 
-      <!-- Comparison Modal Button -->
-      <button onclick="toggleCompareModal(true)" class="px-2.5 py-1.5 rounded bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/60 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,170,0,0.2)] transition-all">
-        <span>⚖️ COMPARAR</span>
-        <span class="px-1.5 py-0.2 bg-amber-400/20 rounded text-amber-200" id="compare-count">3</span>
+      <button id="btn-toggle-grid" onclick="toggleCoordinateGrid()" title="Mostrar/Ocultar retícula selenográfica" class="btn-control active px-2.5 py-1 rounded text-xs font-mono hidden sm:inline-flex items-center gap-1">
+        <span># GRID</span>
+      </button>
+    </div>
+
+    <!-- Right Controls: Profile Mode + Compare + HUD Visibility -->
+    <div class="flex items-center gap-2">
+      <!-- Technical / Educational Toggle -->
+      <div class="bg-obsidian p-0.5 rounded border border-borderline flex items-center text-xs font-medium">
+        <button id="btn-mode-tech" onclick="setAppMode('tech')" class="px-2.5 py-1 rounded bg-panel text-telemetry border border-slate-600 transition-colors">
+          Ingeniería
+        </button>
+        <button id="btn-mode-edu" onclick="setAppMode('edu')" class="px-2.5 py-1 rounded text-steel hover:text-telemetry transition-colors">
+          Divulgativo
+        </button>
+      </div>
+
+      <!-- Side-by-Side Comparison Button -->
+      <button onclick="toggleCompareModal(true)" class="btn-control px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5">
+        <span>Comparar Sitios</span>
+        <span class="px-1.5 py-0.2 bg-obsidian border border-borderline rounded font-mono text-[11px] text-sky-400 tabular-nums" id="compare-count">3</span>
       </button>
 
-      <!-- Collapse Side Panels Toggle (Desktop) -->
-      <button onclick="toggleHudPanels()" id="btn-toggle-hud" title="Ocultar/Mostrar paneles laterales" class="hidden lg:flex px-2 py-1.5 rounded btn-sci text-xs font-mono items-center gap-1">
-        <span id="hud-toggle-icon">◫</span>
+      <!-- Collapse Side Panels Toggle -->
+      <button onclick="toggleHudPanels()" id="btn-toggle-hud" title="Ocultar/Mostrar paneles laterales" class="hidden lg:flex btn-control px-2 py-1.5 rounded text-xs font-mono items-center">
+        <span>◫</span>
       </button>
     </div>
   </header>
 
-  <!-- FLOATING HUD WORKSPACE OVERLAY -->
+  <!-- WORKSPACE OVERLAY -->
   <main class="relative z-10 flex-1 flex flex-col lg:flex-row justify-between p-2.5 sm:p-3.5 gap-3 pointer-events-none overflow-y-auto lg:overflow-hidden">
 
-    <!-- LEFT TACTICAL DRAWER: TARGET SELECTION & CUSTOM COORDINATES -->
-    <aside id="left-hud-panel" class="pointer-events-auto w-full lg:w-80 xl:w-[340px] hud-box hud-corners rounded-lg flex flex-col max-h-[420px] lg:max-h-full transition-all duration-300 shrink-0">
-      <div class="px-3 py-2 border-b border-cyan-500/25 flex items-center justify-between bg-cyan-950/20">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-          <h2 class="font-display text-xs font-bold tracking-wider text-cyan-300">OBJETIVOS LUNARES</h2>
-        </div>
-        <span class="text-[10px] font-mono text-cyan-400/70">CLIC EN GLOBO O LISTA</span>
+    <!-- LEFT DRAWER: LANDING TARGETS & SELENOGRAPHIC COORDINATES -->
+    <aside id="left-hud-panel" class="pointer-events-auto w-full lg:w-80 xl:w-[336px] console-panel rounded-md flex flex-col max-h-[420px] lg:max-h-full transition-all duration-200 shrink-0">
+      <div class="px-3 py-2 border-b border-borderline flex items-center justify-between bg-panel/60">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-telemetry">Sitios de Alunizaje</h2>
+        <span class="text-[10px] font-mono text-steel">Clic en globo o lista</span>
       </div>
 
-      <!-- Custom Selenographic Coordinates Input -->
-      <div class="p-2.5 border-b border-cyan-500/20 bg-void/60">
-        <div class="flex items-center justify-between text-[10px] font-mono text-cyan-300/80 mb-1.5">
-          <span>COORDENADAS SELENOGRÁFICAS</span>
-          <span id="active-coords-mini" class="text-emerald-300">89.54°S 0.00°E</span>
+      <!-- Custom Selenographic Coordinates -->
+      <div class="p-2.5 border-b border-borderline bg-obsidian/50">
+        <div class="flex items-center justify-between text-[11px] mb-1.5">
+          <span class="text-steel font-medium">Coordenadas Selenográficas</span>
+          <span id="active-coords-mini" class="font-mono text-telemetry tabular-nums">89.54°S 0.00°E</span>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-2">
-          <div class="bg-void/90 border border-cyan-500/30 rounded px-2 py-1">
-            <label class="block text-[9px] font-mono text-slate-400">LATITUD (-90/+90)</label>
+          <div class="bg-obsidian border border-borderline focus-within:border-sky-400 rounded px-2 py-1 transition-colors">
+            <label class="block text-[10px] font-mono text-steel">LAT (-90° / +90°)</label>
             <input type="number" id="custom-lat" step="0.01" min="-90" max="90" value="-89.54"
-              class="w-full bg-transparent text-xs font-mono font-bold text-cyan-200 outline-none" />
+              class="w-full bg-transparent text-xs font-mono font-semibold text-telemetry tabular-nums outline-none" />
           </div>
-          <div class="bg-void/90 border border-cyan-500/30 rounded px-2 py-1">
-            <label class="block text-[9px] font-mono text-slate-400">LONGITUD (-180/+180)</label>
+          <div class="bg-obsidian border border-borderline focus-within:border-sky-400 rounded px-2 py-1 transition-colors">
+            <label class="block text-[10px] font-mono text-steel">LON (-180° / +180°)</label>
             <input type="number" id="custom-lon" step="0.01" min="-180" max="180" value="0.00"
-              class="w-full bg-transparent text-xs font-mono font-bold text-cyan-200 outline-none" />
+              class="w-full bg-transparent text-xs font-mono font-semibold text-telemetry tabular-nums outline-none" />
           </div>
         </div>
         <div class="flex gap-1.5">
-          <button onclick="applyCustomCoordinates()" class="flex-1 btn-sci py-1 px-2 rounded text-xs font-mono font-semibold">
-            ⌖ FIJAR VECTOR
+          <button onclick="applyCustomCoordinates()" class="flex-1 btn-control py-1.5 px-2.5 rounded text-xs font-medium text-telemetry">
+            Fijar Coordenadas
           </button>
-          <button onclick="addCurrentSiteToCompare()" class="px-2.5 py-1 rounded bg-amber-500/15 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-mono font-semibold transition-all">
-            + COMP
+          <button onclick="addCurrentSiteToCompare()" class="btn-control px-2.5 py-1.5 rounded text-xs font-mono text-sky-400 hover:text-sky-300">
+            + Comparar
           </button>
         </div>
       </div>
 
-      <!-- Curated Sites Scrollable List -->
+      <!-- Curated Sites List -->
       <div class="flex-1 overflow-y-auto p-2.5 space-y-3" id="sites-list-container">
         <!-- Populated dynamically -->
       </div>
     </aside>
 
-    <!-- CENTER HUD FLOATING INDICATORS & MINI 2D RADAR -->
+    <!-- CENTER FLOATING STATUS & 2D TERMINATOR MAP -->
     <div class="flex-1 flex flex-col justify-between min-h-[260px] pointer-events-none relative">
       
-      <!-- Top Center Floating Reticle Status -->
+      <!-- Top Center Active Site Readout -->
       <div class="flex flex-wrap items-start justify-between gap-2">
-        <!-- Active Target Hologram Pill -->
-        <div class="pointer-events-auto hud-box rounded-lg px-3 py-1.5 flex items-center gap-3">
+        <div class="pointer-events-auto console-panel rounded-md px-3 py-2 flex items-center gap-3">
           <div>
-            <div class="text-[9px] font-mono text-cyan-400/80 tracking-widest">OBJETIVO ACTIVO // TELEMETRÍA</div>
-            <div class="font-display text-xs sm:text-sm font-bold text-white tracking-wide flex items-center gap-2">
-              <span id="hud-target-name">SHACKLETON RIM</span>
-              <span class="text-xs font-mono text-emerald-400" id="hud-target-coords">[89.54°S, 0.00°E]</span>
+            <div class="text-[10px] font-mono uppercase tracking-wider text-steel">Objetivo Seleccionado</div>
+            <div class="text-xs sm:text-sm font-semibold text-telemetry flex items-center gap-2 mt-0.5">
+              <span id="hud-target-name">Shackleton Rim</span>
+              <span class="text-xs font-mono text-sky-400 tabular-nums" id="hud-target-coords">89.54°S, 0.00°E</span>
             </div>
           </div>
-          <button onclick="focusCameraOnSelectedSite()" title="Centrar cámara en sitio" class="btn-sci px-2 py-1 rounded text-[11px] font-mono">
-            🎯 ENFOCAR
+          <button onclick="focusCameraOnSelectedSite()" title="Centrar cámara orbital en el sitio" class="btn-control px-2.5 py-1 rounded text-xs font-medium">
+            Centrar
           </button>
         </div>
 
-        <!-- Farside / No-DTE Tactical Alert Banner -->
-        <div id="hud-farside-alert" class="hidden pointer-events-auto bg-rose-950/90 border border-rose-500 text-rose-200 px-3 py-1.5 rounded-lg text-xs font-mono font-bold shadow-[0_0_20px_rgba(255,51,85,0.45)] flex items-center gap-2 animate-pulse">
-          <span>⚠ ALERTA ENLACE:</span>
-          <span id="hud-farside-text">CARA OCULTA LUNAR - REQUIERE SATÉLITE RELÉ</span>
+        <!-- Farside / Occultation Notice -->
+        <div id="hud-farside-alert" class="hidden pointer-events-auto bg-red-950/90 border border-red-500/70 text-red-100 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 shadow-lg">
+          <span class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+          <span id="hud-farside-text">Cara oculta lunar — Enlace directo Tierra (DTE) no disponible</span>
         </div>
       </div>
 
-      <!-- Bottom Center: Mini 2D Tactical Radar + Camera Hint -->
+      <!-- Bottom Center: 2D Equirectangular/Polar Terminator Mini-Map + Navigation Hint -->
       <div class="flex items-end justify-between gap-2 mt-auto pt-2">
-        <!-- Mini 2D Terminator Radar HUD -->
-        <div class="pointer-events-auto hud-box rounded-lg p-1.5 w-48 sm:w-56 shrink-0">
-          <div class="flex items-center justify-between text-[9px] font-mono text-cyan-300/80 px-1 mb-1">
-            <span>RADAR TERMINADOR 2D</span>
-            <button onclick="cycleRadarProjection()" id="btn-radar-proj" class="text-amber-300 hover:underline">GLOBAL</button>
+        <div class="pointer-events-auto console-panel rounded-md p-2 w-52 sm:w-60 shrink-0">
+          <div class="flex items-center justify-between text-[10px] font-mono text-steel mb-1.5">
+            <span>TERMINADOR 2D</span>
+            <button onclick="cycleRadarProjection()" id="btn-radar-proj" class="text-sky-400 hover:underline font-semibold">GLOBAL</button>
           </div>
-          <canvas id="canvas-radar-2d" class="w-full h-24 rounded bg-void/90 border border-cyan-500/20 block cursor-crosshair"></canvas>
+          <canvas id="canvas-radar-2d" class="w-full h-24 rounded bg-obsidian border border-borderline block cursor-crosshair"></canvas>
+          <div class="flex items-center justify-between text-[9px] font-mono text-steel mt-1">
+            <span class="flex items-center gap-1"><i class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></i>Subsolar</span>
+            <span class="flex items-center gap-1"><i class="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block"></i>Subterrestre</span>
+            <span class="flex items-center gap-1"><i class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></i>Sitio</span>
+          </div>
         </div>
 
-        <!-- Camera Navigation Controls -->
-        <div class="hidden sm:flex pointer-events-auto hud-box rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-cyan-200/75 items-center gap-3">
-          <span>🖱 Arrastrar: Orbitar</span>
-          <span>⚙ Rueda: Zoom</span>
-          <span>⌖ Clic Globo: Fijar Punto</span>
+        <div class="hidden sm:flex pointer-events-auto console-panel rounded-md px-3 py-1.5 text-[11px] text-steel items-center gap-3">
+          <span>Arrastrar: Rotar órbita</span>
+          <span class="text-borderline">|</span>
+          <span>Rueda: Zoom</span>
+          <span class="text-borderline">|</span>
+          <span>Clic en esfera: Fijar punto</span>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT TACTICAL DRAWER: POWER, EARTH COMMS & VIABILITY TELEMETRY -->
-    <aside id="right-hud-panel" class="pointer-events-auto w-full lg:w-80 xl:w-[350px] hud-box hud-corners rounded-lg flex flex-col max-h-[480px] lg:max-h-full transition-all duration-300 shrink-0">
-      <div class="px-3 py-2 border-b border-cyan-500/25 flex items-center justify-between bg-cyan-950/20">
-        <h2 class="font-display text-xs font-bold tracking-wider text-cyan-300 flex items-center gap-1.5">
-          <span>⚡</span> ANÁLISIS DE VIABILIDAD
-        </h2>
-        <span id="mode-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/40">TÉCNICO</span>
+    <!-- RIGHT DRAWER: TELEMETRY, POWER & COMMUNICATIONS ASSESSMENT -->
+    <aside id="right-hud-panel" class="pointer-events-auto w-full lg:w-80 xl:w-[348px] console-panel rounded-md flex flex-col max-h-[480px] lg:max-h-full transition-all duration-200 shrink-0">
+      <div class="px-3 py-2 border-b border-borderline flex items-center justify-between bg-panel/60">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-telemetry">Telemetría y Viabilidad</h2>
+        <span id="mode-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-obsidian text-steel border border-borderline">INGENIERÍA</span>
       </div>
 
       <div class="flex-1 overflow-y-auto p-2.5 space-y-2.5">
         
-        <!-- 1. VIABILITY VERDICT CARD -->
-        <div id="viability-card" class="p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-950/30 transition-all">
+        <!-- 1. VIABILITY ASSESSMENT SUMMARY -->
+        <div id="viability-card" class="p-2.5 rounded-md border border-emerald-500/40 bg-emerald-950/20">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono text-slate-300 uppercase">ÍNDICE DE MISIÓN</span>
-            <span id="viability-score" class="font-display text-sm font-extrabold text-emerald-300 glow-emerald">94 / 100</span>
+            <span class="text-[10px] font-mono uppercase tracking-wider text-steel">Índice de Viabilidad</span>
+            <span id="viability-score" class="font-mono text-xs font-bold text-emerald-400 tabular-nums">94 / 100</span>
           </div>
-          <div id="viability-status" class="font-display text-xs sm:text-sm font-bold text-emerald-300 mt-0.5 tracking-wide">
-            ● VENTANA ÓPTIMA DE ALUNIZAJE
+          <div id="viability-status" class="text-xs sm:text-sm font-semibold text-emerald-400 mt-0.5">
+            Ventana Óptima de Alunizaje
           </div>
-          <p id="viability-desc" class="text-xs text-slate-200/90 mt-1 leading-snug">
+          <p id="viability-desc" class="text-xs text-slate-300 mt-1 leading-relaxed">
             Iluminación solar rasante activa y enlace directo Tierra (DTE) operativo. Condiciones nominales.
           </p>
         </div>
 
-        <!-- 2. SOLAR POWER & THERMAL TELEMETRY -->
-        <div class="bg-void/75 border border-amber-500/30 rounded-lg p-2.5 space-y-2">
-          <div class="flex items-center justify-between border-b border-amber-500/20 pb-1">
-            <span class="font-display text-[11px] font-bold text-amber-300 tracking-wider glow-amber">☀ POTENCIA SOLAR Y TÉRMICA</span>
-            <span id="sun-day-badge" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200 border border-amber-400/50">DÍA LUNAR</span>
+        <!-- 2. SOLAR ILLUMINATION & POWER GENERATION -->
+        <div class="bg-obsidian/75 border border-borderline rounded-md p-2.5 space-y-2">
+          <div class="flex items-center justify-between border-b border-borderline pb-1.5">
+            <span class="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+              <span>☀</span> Potencia Solar y Térmica
+            </span>
+            <span id="sun-day-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">DÍA LUNAR</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 font-mono">
-            <div class="bg-slate-950/90 p-2 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">ELEVACIÓN SOLAR</div>
-              <div class="text-sm font-bold text-white" id="val-sun-alt">+14.2°</div>
-              <div class="text-[10px] text-amber-300/80" id="val-sun-az">AZ: 112.4°</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-surface p-2 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">ELEVACIÓN SOLAR</div>
+              <div class="text-sm font-mono font-bold text-telemetry tabular-nums mt-0.5" id="val-sun-alt">+14.2°</div>
+              <div class="text-[10px] font-mono text-steel tabular-nums" id="val-sun-az">AZ: 112.4°</div>
             </div>
-            <div class="bg-slate-950/90 p-2 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">IRRADIANCIA EFECT.</div>
-              <div class="text-sm font-bold text-amber-300" id="val-solar-wm2">517 W/m²</div>
-              <div class="text-[10px] text-slate-400" id="val-solar-pct">CAP: 38.0%</div>
+            <div class="bg-surface p-2 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">IRRADIANCIA EFECT.</div>
+              <div class="text-sm font-mono font-bold text-amber-400 tabular-nums mt-0.5" id="val-solar-wm2">517 W/m²</div>
+              <div class="text-[10px] font-mono text-steel tabular-nums" id="val-solar-pct">38.0% S₀</div>
             </div>
           </div>
 
-          <div class="text-xs font-mono space-y-1 pt-0.5">
+          <div class="text-xs space-y-1 pt-0.5">
             <div class="flex justify-between">
-              <span class="text-slate-400">Hasta Ocaso / Alba:</span>
-              <span class="text-amber-200 font-semibold" id="val-time-sunset">11d 14h (Ocaso)</span>
+              <span class="text-steel">Tiempo hasta Ocaso / Alba:</span>
+              <span class="font-mono text-telemetry tabular-nums" id="val-time-sunset">11d 14h (Ocaso)</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-400">Ventana Luz Continua:</span>
-              <span class="text-slate-200" id="val-sun-duration">26.5 días terr.</span>
+              <span class="text-steel">Duración Luz Continua:</span>
+              <span class="font-mono text-telemetry tabular-nums" id="val-sun-duration">26.5 días terr.</span>
             </div>
             <div class="flex justify-between tech-only">
-              <span class="text-slate-400">Temp. Superficie Est.:</span>
-              <span class="text-amber-300" id="val-surface-temp">+42 °C (315 K)</span>
+              <span class="text-steel">Temp. Superficie Est.:</span>
+              <span class="font-mono text-telemetry tabular-nums" id="val-surface-temp">+42 °C (315 K)</span>
             </div>
           </div>
 
-          <div class="edu-only hidden bg-amber-950/30 border border-amber-500/30 rounded p-2 text-[11px] text-amber-100 leading-snug">
-            <strong>💡 Dato Clave:</strong> Sin atmósfera, el Sol ilumina con 1.361 W/m². En los polos, la luz llega casi horizontal, creando sombras muy largas pero permitiendo energía casi ininterrumpida en picos elevados.
+          <div class="edu-only hidden bg-surface border border-borderline rounded p-2 text-[11px] text-slate-300 leading-relaxed">
+            <strong class="text-amber-400">Contexto orbital:</strong> Al carecer de atmósfera, la irradiancia solar es constante (1.361 W/m²). En latitudes polares el Sol roza el horizonte, generando sombras alargadas pero ventanas de luz casi continuas en crestas elevadas.
           </div>
         </div>
 
-        <!-- 3. EARTH COMMUNICATIONS & LIBRATION TELEMETRY -->
-        <div class="bg-void/75 border border-cyan-500/30 rounded-lg p-2.5 space-y-2">
-          <div class="flex items-center justify-between border-b border-cyan-500/20 pb-1">
-            <span class="font-display text-[11px] font-bold text-cyan-300 tracking-wider glow-cyan">📡 ENLACE TIERRA (DTE)</span>
-            <span id="earth-link-badge" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/50">ACTIVO</span>
+        <!-- 3. EARTH VISIBILITY & TELECOMMUNICATIONS -->
+        <div class="bg-obsidian/75 border border-borderline rounded-md p-2.5 space-y-2">
+          <div class="flex items-center justify-between border-b border-borderline pb-1.5">
+            <span class="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
+              <span>📡</span> Visibilidad Tierra (DTE)
+            </span>
+            <span id="earth-link-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">LOS ACTIVO</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 font-mono">
-            <div class="bg-slate-950/90 p-2 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">ELEVACIÓN TIERRA</div>
-              <div class="text-sm font-bold text-cyan-300" id="val-earth-alt">+6.4°</div>
-              <div class="text-[10px] text-slate-400" id="val-earth-az">AZ: 0.2°</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-surface p-2 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">ELEVACIÓN TIERRA</div>
+              <div class="text-sm font-mono font-bold text-sky-400 tabular-nums mt-0.5" id="val-earth-alt">+6.4°</div>
+              <div class="text-[10px] font-mono text-steel tabular-nums" id="val-earth-az">AZ: 0.2°</div>
             </div>
-            <div class="bg-slate-950/90 p-2 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">ESTADO TELEMETRÍA</div>
-              <div class="text-xs font-bold text-emerald-300 mt-0.5" id="val-link-mode">DIRECTO DTE</div>
-              <div class="text-[10px] text-slate-400" id="val-libration">LIB: +1.8°N</div>
+            <div class="bg-surface p-2 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">ARQUITECTURA RF</div>
+              <div class="text-xs font-mono font-bold text-emerald-400 mt-1" id="val-link-mode">DIRECTO DTE</div>
+              <div class="text-[10px] font-mono text-steel tabular-nums" id="val-libration">LIB: +1.8°N</div>
             </div>
           </div>
 
-          <div class="text-xs font-mono space-y-1 pt-0.5">
+          <div class="text-xs space-y-1 pt-0.5">
             <div class="flex justify-between">
-              <span class="text-slate-400">Margen Horizonte:</span>
-              <span class="text-cyan-200" id="val-earth-margin">+6.4° sobre rasante</span>
+              <span class="text-steel">Margen sobre Horizonte:</span>
+              <span class="font-mono text-telemetry tabular-nums" id="val-earth-margin">+6.4° sobre rasante</span>
             </div>
             <div class="flex justify-between tech-only">
-              <span class="text-slate-400">Latencia RF (RTT):</span>
-              <span class="text-slate-300">2.56 s (Banda X/Ka)</span>
+              <span class="text-steel">Retardo Ida/Vuelta (RTT):</span>
+              <span class="font-mono text-steel tabular-nums">2.56 s (Banda X/Ka)</span>
             </div>
           </div>
 
-          <div class="edu-only hidden bg-cyan-950/30 border border-cyan-500/30 rounded p-2 text-[11px] text-cyan-100 leading-snug">
-            <strong>🌍 Visibilidad Terrestre:</strong> La Tierra oscila ±7.9° en el cielo lunar por la <em>libración</em>. Desde la cara oculta (longitud &gt;98°) la Tierra jamás se ve y se necesita un satélite relé en órbita.
+          <div class="edu-only hidden bg-surface border border-borderline rounded p-2 text-[11px] text-slate-300 leading-relaxed">
+            <strong class="text-sky-400">Libración y Cara Oculta:</strong> Debido al acoplamiento de marea, la Tierra permanece casi fija en el cielo lunar, oscilando ±7.9° por libración. En la cara oculta (longitud &gt;98°) se requiere un satélite relé en órbita.
           </div>
         </div>
 
-        <!-- 4. GEOLOGY & LANDING HAZARD ASSESSMENT -->
-        <div class="bg-void/75 border border-slate-700/80 rounded-lg p-2.5 space-y-1.5">
-          <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
-            <span class="font-display font-bold text-slate-200">⛰️ PERFIL TOPOGRÁFICO</span>
-            <span id="val-region-type" class="text-cyan-300">CRESTA POLAR</span>
+        <!-- 4. TOPOGRAPHY & LANDING HAZARD PROFILE -->
+        <div class="bg-obsidian/75 border border-borderline rounded-md p-2.5 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-semibold text-telemetry">Perfil Geológico y Riesgo</span>
+            <span id="val-region-type" class="text-[10px] font-mono text-steel">CRESTA POLAR</span>
           </div>
-          <div class="grid grid-cols-3 gap-1.5 text-center font-mono">
-            <div class="bg-slate-950/90 p-1.5 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">PENDIENTE</div>
-              <div class="text-xs font-bold text-white" id="val-slope">8.5°</div>
+          <div class="grid grid-cols-3 gap-1.5 text-center">
+            <div class="bg-surface p-1.5 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">PENDIENTE</div>
+              <div class="text-xs font-mono font-semibold text-telemetry tabular-nums mt-0.5" id="val-slope">8.5°</div>
             </div>
-            <div class="bg-slate-950/90 p-1.5 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">ROCAS</div>
-              <div class="text-xs font-bold text-white" id="val-boulders">Moderado</div>
+            <div class="bg-surface p-1.5 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">ROCAS</div>
+              <div class="text-xs font-semibold text-telemetry mt-0.5" id="val-boulders">Moderado</div>
             </div>
-            <div class="bg-slate-950/90 p-1.5 rounded border border-slate-800">
-              <div class="text-[9px] text-slate-400">HIELO PSR</div>
-              <div class="text-xs font-bold text-cyan-300" id="val-ice">Alto</div>
+            <div class="bg-surface p-1.5 rounded border border-borderline">
+              <div class="text-[10px] font-mono text-steel">HIELO PSR</div>
+              <div class="text-xs font-semibold text-sky-400 mt-0.5" id="val-ice">Alto</div>
             </div>
           </div>
-          <p id="val-site-notes" class="text-[11px] text-slate-300/90 leading-snug pt-0.5">
+          <p id="val-site-notes" class="text-xs text-slate-300 leading-relaxed">
             Cresta iluminada junto al cráter Shackleton. Acceso cercano a regiones permanentemente en sombra (PSR) con hielo de agua.
           </p>
         </div>
@@ -455,41 +418,42 @@
 
   </main>
 
-  <!-- BOTTOM TACTICAL TIMELINE & EPHEMERIS CONSOLE -->
-  <footer class="relative z-20 hud-box border-x-0 border-b-0 px-3 sm:px-5 py-2 shrink-0">
+  <!-- BOTTOM EPHEMERIS & SYNODIC TIMELINE BAR -->
+  <footer class="relative z-20 console-panel border-x-0 border-b-0 px-3 sm:px-5 py-2 shrink-0">
     <div class="max-w-[1800px] mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
       
-      <!-- Date/Time Control & Simulation Transport -->
+      <!-- Epoch Date/Time & Playback Controls -->
       <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <div class="flex items-center gap-1.5 bg-void/90 border border-cyan-500/35 rounded px-2 py-1">
-          <span class="text-[10px] font-mono text-cyan-400">UTC:</span>
+        <div class="flex items-center gap-1.5 bg-obsidian border border-borderline rounded px-2 py-1">
+          <span class="text-[10px] font-mono text-steel">ÉPOCA UTC</span>
           <input type="datetime-local" id="mission-datetime"
-            class="bg-transparent text-xs font-mono font-semibold text-white outline-none" />
+            class="bg-transparent text-xs font-mono font-medium text-telemetry tabular-nums outline-none" />
         </div>
 
-        <button onclick="setNowDateTime()" class="btn-sci px-2 py-1 rounded text-[11px] font-mono">
-          HOY
+        <button onclick="setNowDateTime()" class="btn-control px-2 py-1 rounded text-xs font-mono">
+          Hoy
         </button>
 
-        <button id="btn-sim-play" onclick="toggleSimulation()" class="px-2.5 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/60 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,255,157,0.2)] transition-all">
+        <button id="btn-sim-play" onclick="toggleSimulation()" class="btn-control px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 text-emerald-400 border-emerald-500/40">
           <span id="sim-play-icon">▶</span>
-          <span id="sim-play-text">SIMULAR ÓRBITA</span>
+          <span id="sim-play-text">Simular Ciclo</span>
         </button>
 
-        <div class="flex items-center bg-void/90 rounded border border-slate-700 p-0.5 text-[10px] font-mono">
-          <button onclick="setSimSpeed(200)" id="speed-200" class="px-1.5 py-0.5 rounded text-slate-400 hover:text-white">200x</button>
-          <button onclick="setSimSpeed(3000)" id="speed-3000" class="px-1.5 py-0.5 rounded bg-cyan-500/25 text-cyan-200 border border-cyan-400/50">3000x</button>
-          <button onclick="setSimSpeed(18000)" id="speed-18000" class="px-1.5 py-0.5 rounded text-slate-400 hover:text-white">18000x</button>
+        <div class="flex items-center bg-obsidian rounded border border-borderline p-0.5 text-[11px] font-mono">
+          <button onclick="setSimSpeed(1)" id="speed-1" class="px-1.5 py-0.5 rounded text-steel hover:text-telemetry">1x</button>
+          <button onclick="setSimSpeed(100)" id="speed-100" class="px-1.5 py-0.5 rounded text-steel hover:text-telemetry">100x</button>
+          <button onclick="setSimSpeed(2500)" id="speed-2500" class="px-1.5 py-0.5 rounded bg-panel text-telemetry border border-slate-600">2500x</button>
+          <button onclick="setSimSpeed(15000)" id="speed-15000" class="px-1.5 py-0.5 rounded text-steel hover:text-telemetry">15000x</button>
         </div>
       </div>
 
-      <!-- 29.53-Day Synodic Illumination & Earth Visibility Timeline Scrubber -->
+      <!-- 29.53-Day Synodic Illumination & DTE Window Scrubber -->
       <div class="flex-1 flex flex-col justify-center min-w-[240px]">
         <div class="flex items-center justify-between text-[10px] font-mono mb-1">
-          <span class="text-slate-400">CICLO SINÓDICO (29.53 DÍAS) // ARRASTRA PARA EXPLORAR VENTANAS</span>
-          <span id="lunar-phase-label" class="text-amber-300 font-semibold">FASE: CUARTO CRECIENTE (+7.4d)</span>
+          <span class="text-steel">CICLO SINÓDICO (29.53 DÍAS) — Arrastrar para desplazar fecha</span>
+          <span id="lunar-phase-label" class="text-amber-400 font-medium tabular-nums">FASE: CUARTO CRECIENTE (+7.4d)</span>
         </div>
-        <div id="timeline-strip-container" class="relative h-5 bg-void rounded border border-cyan-500/35 overflow-hidden cursor-ew-resize">
+        <div id="timeline-strip-container" class="relative h-5 bg-obsidian rounded border border-borderline overflow-hidden cursor-ew-resize" title="Superior: Luz Solar (Ámbar) | Inferior: Visibilidad Tierra (Azul)">
           <canvas id="canvas-timeline" class="w-full h-full block"></canvas>
         </div>
       </div>
@@ -498,50 +462,50 @@
   </footer>
 
   <!-- SIDE-BY-SIDE COMPARISON MODAL -->
-  <div id="compare-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-    <div class="hud-box hud-corners rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-      <div class="p-4 border-b border-cyan-500/30 flex items-center justify-between bg-cyan-950/30">
+  <div id="compare-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="console-panel rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-borderline flex items-center justify-between bg-panel">
         <div>
-          <h3 class="font-display text-sm sm:text-base font-bold text-white tracking-wider glow-cyan">
-            ⚖️ MATRIZ COMPARATIVA DE SITIOS DE ALUNIZAJE
+          <h3 class="text-sm sm:text-base font-semibold text-telemetry">
+            Comparativa Técnica de Sitios de Alunizaje
           </h3>
-          <p class="text-xs font-mono text-cyan-300/70">Época de evaluación: <span id="compare-modal-date" class="text-amber-300"></span></p>
+          <p class="text-xs font-mono text-steel mt-0.5">Época de evaluación: <span id="compare-modal-date" class="text-telemetry tabular-nums"></span></p>
         </div>
-        <button onclick="toggleCompareModal(false)" class="btn-sci px-2.5 py-1 rounded font-mono text-xs">
-          ✕ CERRAR
+        <button onclick="toggleCompareModal(false)" class="btn-control px-2.5 py-1 rounded text-xs font-medium">
+          Cerrar ✕
         </button>
       </div>
 
       <div class="p-4 overflow-x-auto flex-1">
-        <table class="w-full text-left border-collapse text-xs font-mono">
+        <table class="w-full text-left border-collapse text-xs">
           <thead>
-            <tr class="border-b border-cyan-500/30 text-cyan-300 text-[11px]">
+            <tr class="border-b border-borderline text-steel font-mono text-[11px]">
               <th class="py-2.5 px-3 w-44">PARÁMETRO</th>
-              <th id="comp-col-0" class="py-2.5 px-3 min-w-[180px]">SLOT 01</th>
-              <th id="comp-col-1" class="py-2.5 px-3 min-w-[180px]">SLOT 02</th>
-              <th id="comp-col-2" class="py-2.5 px-3 min-w-[180px]">SLOT 03</th>
+              <th id="comp-col-0" class="py-2.5 px-3 min-w-[180px]">SITIO 01</th>
+              <th id="comp-col-1" class="py-2.5 px-3 min-w-[180px]">SITIO 02</th>
+              <th id="comp-col-2" class="py-2.5 px-3 min-w-[180px]">SITIO 03</th>
             </tr>
           </thead>
-          <tbody id="compare-table-body" class="divide-y divide-slate-800/80">
+          <tbody id="compare-table-body" class="divide-y divide-borderline/70">
             <!-- Dynamic rows -->
           </tbody>
         </table>
       </div>
 
-      <div class="p-3 border-t border-cyan-500/20 bg-void/80 flex items-center justify-between text-xs font-mono text-slate-400">
-        <span>Usa "+ COMP" en el panel izquierdo para añadir hasta 3 sitios simultáneos.</span>
-        <button onclick="toggleCompareModal(false)" class="btn-sci px-4 py-1.5 rounded font-semibold">
-          VOLVER AL GLOBO 3D
+      <div class="p-3 border-t border-borderline bg-obsidian/80 flex items-center justify-between text-xs text-steel">
+        <span>Utiliza "+ Comparar" en el panel izquierdo para evaluar hasta 3 ubicaciones simultáneamente.</span>
+        <button onclick="toggleCompareModal(false)" class="btn-control px-4 py-1.5 rounded font-medium text-telemetry">
+          Volver al Visor 3D
         </button>
       </div>
     </div>
   </div>
 
-  <!-- TACTICAL TOAST NOTIFICATION -->
-  <div id="toast-box" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 transition-all duration-300 pointer-events-none">
-    <div class="hud-box border-cyan-400 text-cyan-100 px-4 py-2 rounded-lg text-xs font-mono font-semibold flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.3)]">
-      <span class="text-cyan-400">◈</span>
-      <span id="toast-message">TELEMETRÍA ACTUALIZADA</span>
+  <!-- SUBTLE STATUS TOAST -->
+  <div id="toast-box" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 transform -translate-y-10 opacity-0 transition-all duration-200 pointer-events-none">
+    <div class="console-panel px-3.5 py-1.5 rounded-md text-xs font-mono text-telemetry flex items-center gap-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+      <span id="toast-message">Coordenadas actualizadas</span>
     </div>
   </div>
 
@@ -552,7 +516,8 @@
     const CURATED_SITES = [
       {
         id: 'shackleton',
-        program: 'ARTEMIS // CLPS',
+        code: 'SHK',
+        program: 'ARTEMIS / CLPS',
         name: 'Shackleton Rim',
         subtitle: 'Polo Sur Lunar (Artemis III)',
         lat: -89.54,
@@ -565,7 +530,8 @@
       },
       {
         id: 'malapert',
-        program: 'ARTEMIS // CLPS',
+        code: 'MLP',
+        program: 'ARTEMIS / CLPS',
         name: 'Malapert Massif',
         subtitle: 'Macizo Polar Sur (IM-2)',
         lat: -86.00,
@@ -578,7 +544,8 @@
       },
       {
         id: 'crisium',
-        program: 'ARTEMIS // CLPS',
+        code: 'CRS',
+        program: 'ARTEMIS / CLPS',
         name: 'Mare Crisium',
         subtitle: 'Blue Ghost CLPS-19D',
         lat: 18.56,
@@ -591,7 +558,8 @@
       },
       {
         id: 'reiner',
-        program: 'ARTEMIS // CLPS',
+        code: 'RNG',
+        program: 'ARTEMIS / CLPS',
         name: 'Reiner Gamma',
         subtitle: 'Remolino Magnético (Vertex)',
         lat: 7.50,
@@ -604,6 +572,7 @@
       },
       {
         id: 'apollo11',
+        code: 'A11',
         program: 'PROGRAMA APOLLO',
         name: 'Apollo 11',
         subtitle: 'Mare Tranquillitatis (1969)',
@@ -617,6 +586,7 @@
       },
       {
         id: 'apollo15',
+        code: 'A15',
         program: 'PROGRAMA APOLLO',
         name: 'Apollo 15',
         subtitle: 'Hadley-Apennine (1971)',
@@ -630,6 +600,7 @@
       },
       {
         id: 'apollo17',
+        code: 'A17',
         program: 'PROGRAMA APOLLO',
         name: 'Apollo 17',
         subtitle: 'Taurus-Littrow (1972)',
@@ -643,6 +614,7 @@
       },
       {
         id: 'change4',
+        code: 'CE-4',
         program: 'INTERNACIONAL',
         name: 'Chang’e-4',
         subtitle: 'Von Kármán - Cara Oculta',
@@ -656,6 +628,7 @@
       },
       {
         id: 'chandrayaan3',
+        code: 'CY-3',
         program: 'INTERNACIONAL',
         name: 'Chandrayaan-3',
         subtitle: 'Shiv Shakti Point (ISRO)',
@@ -676,12 +649,13 @@
       mode: 'tech', // 'tech' | 'edu'
       sceneMode: 'globe', // 'globe' | 'surface'
       radarProj: 'global', // 'global' | 'south'
+      showGrid: true,
       hudCollapsed: false,
       selectedSite: { ...CURATED_SITES[0] },
       compareList: [CURATED_SITES[0], CURATED_SITES[4], CURATED_SITES[7]],
       simDate: new Date('2026-11-14T12:00:00Z'),
       isSimulating: false,
-      simSpeed: 3000,
+      simSpeed: 2500,
       lastFrameTime: performance.now(),
       telemetry: null
     };
@@ -819,31 +793,24 @@
     }
 
     // =========================================================================
-    // 4. THREE.JS SCI-FI 3D HOLOGRAPHIC MOON GLOBE + SURFACE HORIZON ENGINE
+    // 4. THREE.JS SCIENTIFIC 3D LUNAR GLOBE & SURFACE HORIZON ENGINE
     // =========================================================================
     let scene, camera, renderer;
     let globeGroup, surfaceGroup;
-    let moonSphere, holoWireSphere, fresnelSphere, outerRing1, outerRing2, scanTorus;
-    let orbitalSunLight, orbitalSunMesh, orbitalSunRay, orbitalEarthMesh, orbitalDteLaser;
+    let moonSphere, coordGridGroup, eclipticRing;
+    let orbitalSunLight, orbitalSunMesh, orbitalSunRay, orbitalEarthMesh, orbitalDteLine;
     let customPinGroup, beaconMeshes = [];
     let surfaceSunLight, surfaceSunSphere, surfaceEarthSphere, surfaceDteBeam;
 
     const GLOBE_RADIUS = 5.0;
 
-    // Camera orbit parameters
-    let camYaw = 0.45, camPitch = 0.22, camDist = 15.5;
-    let targetYaw = 0.45, targetPitch = 0.22, targetDist = 15.5;
+    // Camera orbit state
+    let camYaw = 0.42, camPitch = 0.18, camDist = 15.2;
+    let targetYaw = 0.42, targetPitch = 0.18, targetDist = 15.2;
     let isDragging = false, dragMoved = false, prevMouse = { x: 0, y: 0 };
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
 
-    /**
-     * Converts selenographic (lat, lon) to 3D Cartesian coordinates on sphere of radius R.
-     * Convention:
-     *  - Y axis = Lunar North Pole (+90° lat)
-     *  - +Z axis = Sub-Earth Prime Meridian (0° lat, 0° lon)
-     *  - +X axis = East (+90° lon)
-     */
     function latLonToVec3(latDeg, lonDeg, radius) {
       const phi = (90 - latDeg) * DEG2RAD;
       const theta = lonDeg * DEG2RAD;
@@ -853,9 +820,6 @@
       return new THREE.Vector3(x, y, z);
     }
 
-    /**
-     * Inverse mapping: 3D point on sphere -> selenographic (lat, lon)
-     */
     function vec3ToLatLon(vec) {
       const norm = vec.clone().normalize();
       const lat = 90 - Math.acos(Math.max(-1, Math.min(1, norm.y))) * RAD2DEG;
@@ -864,7 +828,7 @@
     }
 
     /**
-     * Generates a high-resolution procedural Lunar Albedo & Crater Bump CanvasTexture
+     * Generates realistic procedural lunar albedo and crater bump maps
      */
     function createProceduralLunarTextures() {
       const width = 1024;
@@ -880,34 +844,33 @@
       bumpCanvas.height = height;
       const bCtx = bumpCanvas.getContext('2d');
 
-      // Base lunar highland regolith
-      dCtx.fillStyle = '#7c8594';
+      // Base lunar highland anorthositic regolith
+      dCtx.fillStyle = '#8b929e';
       dCtx.fillRect(0, 0, width, height);
       bCtx.fillStyle = '#808080';
       bCtx.fillRect(0, 0, width, height);
 
-      // Subtle regolith noise
-      for (let i = 0; i < 6500; i++) {
+      // Fine regolith grain
+      for (let i = 0; i < 8000; i++) {
         const x = Math.random() * width;
         const y = Math.random() * height;
-        const r = 1 + Math.random() * 3.5;
-        const shade = Math.random() > 0.5 ? 'rgba(226, 232, 240, 0.08)' : 'rgba(15, 23, 42, 0.1)';
-        dCtx.fillStyle = shade;
+        const r = 0.8 + Math.random() * 3.2;
+        dCtx.fillStyle = Math.random() > 0.5 ? 'rgba(226, 232, 240, 0.06)' : 'rgba(20, 26, 36, 0.08)';
         dCtx.beginPath();
         dCtx.arc(x, y, r, 0, Math.PI * 2);
         dCtx.fill();
 
-        bCtx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+        bCtx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
         bCtx.beginPath();
         bCtx.arc(x, y, r, 0, Math.PI * 2);
         bCtx.fill();
       }
 
-      // Draw Realistic Lunar Maria (Dark basaltic plains on Near Side: center u=0.5 is 0° lon)
+      // Basaltic Lunar Maria (Near Side)
       const maria = [
-        { lon: -35, lat: 15, rx: 95, ry: 85 },   // Oceanus Procellarum
-        { lon: -18, lat: 33, rx: 62, ry: 52 },   // Mare Imbrium
-        { lon: 18, lat: 26, rx: 45, ry: 38 },    // Mare Serenitatis
+        { lon: -36, lat: 14, rx: 98, ry: 88 },   // Oceanus Procellarum
+        { lon: -18, lat: 33, rx: 64, ry: 54 },   // Mare Imbrium
+        { lon: 18, lat: 26, rx: 46, ry: 38 },    // Mare Serenitatis
         { lon: 28, lat: 8, rx: 48, ry: 40 },     // Mare Tranquillitatis
         { lon: 59, lat: 17, rx: 28, ry: 25 },    // Mare Crisium
         { lon: -15, lat: -22, rx: 52, ry: 42 },  // Mare Nubium
@@ -916,21 +879,19 @@
       ];
 
       maria.forEach(m => {
-        // Texture X: u = (lon + 180)/360
         const cx = ((m.lon + 180) / 360) * width;
         const cy = ((90 - m.lat) / 180) * height;
         const grad = dCtx.createRadialGradient(cx, cy, m.rx * 0.15, cx, cy, m.rx);
-        grad.addColorStop(0, 'rgba(30, 38, 52, 0.85)');
-        grad.addColorStop(0.7, 'rgba(45, 55, 72, 0.65)');
-        grad.addColorStop(1, 'rgba(124, 133, 148, 0)');
+        grad.addColorStop(0, 'rgba(38, 43, 52, 0.88)');
+        grad.addColorStop(0.72, 'rgba(54, 61, 74, 0.65)');
+        grad.addColorStop(1, 'rgba(139, 146, 158, 0)');
         dCtx.fillStyle = grad;
         dCtx.beginPath();
         dCtx.ellipse(cx, cy, m.rx, m.ry, 0.2, 0, Math.PI * 2);
         dCtx.fill();
 
-        // Basins are lower elevation in bump map
         const bGrad = bCtx.createRadialGradient(cx, cy, m.rx * 0.1, cx, cy, m.rx);
-        bGrad.addColorStop(0, 'rgba(55, 55, 55, 0.6)');
+        bGrad.addColorStop(0, 'rgba(52, 52, 52, 0.65)');
         bGrad.addColorStop(1, 'rgba(128, 128, 128, 0)');
         bCtx.fillStyle = bGrad;
         bCtx.beginPath();
@@ -938,19 +899,18 @@
         bCtx.fill();
       });
 
-      // Procedural Impact Craters (Tycho, Copernicus, Aristarchus, Aitken, + 380 random craters)
       const majorCraters = [
-        { lon: -11.2, lat: -43.3, r: 22, rays: true }, // Tycho
-        { lon: -20.1, lat: 9.6, r: 25, rays: true },   // Copernicus
-        { lon: -47.4, lat: 23.7, r: 14, rays: true },  // Aristarchus
-        { lon: 175.0, lat: -53.0, r: 58, rays: false },// South Pole-Aitken basin
-        { lon: 0.0, lat: -89.5, r: 15, rays: false }   // Shackleton
+        { lon: -11.2, lat: -43.3, r: 22, rays: true },  // Tycho
+        { lon: -20.1, lat: 9.6, r: 25, rays: true },    // Copernicus
+        { lon: -47.4, lat: 23.7, r: 14, rays: true },   // Aristarchus
+        { lon: 175.0, lat: -53.0, r: 60, rays: false }, // South Pole-Aitken
+        { lon: 0.0, lat: -89.5, r: 16, rays: false }    // Shackleton
       ];
 
       const drawCrater = (cx, cy, r, hasRays) => {
         if (hasRays) {
-          dCtx.strokeStyle = 'rgba(226, 232, 240, 0.22)';
-          dCtx.lineWidth = 1.2;
+          dCtx.strokeStyle = 'rgba(235, 240, 248, 0.20)';
+          dCtx.lineWidth = 1.1;
           for (let k = 0; k < 14; k++) {
             const ang = (k / 14) * Math.PI * 2 + Math.random() * 0.3;
             const len = r * (2.5 + Math.random() * 3.5);
@@ -961,22 +921,20 @@
           }
         }
 
-        // Albedo rim & floor
         const cGrad = dCtx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.25);
-        cGrad.addColorStop(0, 'rgba(58, 66, 80, 0.65)');
-        cGrad.addColorStop(0.75, 'rgba(95, 105, 120, 0.45)');
-        cGrad.addColorStop(0.92, 'rgba(215, 224, 236, 0.65)');
-        cGrad.addColorStop(1, 'rgba(124, 133, 148, 0)');
+        cGrad.addColorStop(0, 'rgba(65, 72, 84, 0.65)');
+        cGrad.addColorStop(0.75, 'rgba(105, 114, 128, 0.45)');
+        cGrad.addColorStop(0.92, 'rgba(220, 226, 236, 0.60)');
+        cGrad.addColorStop(1, 'rgba(139, 146, 158, 0)');
         dCtx.fillStyle = cGrad;
         dCtx.beginPath();
         dCtx.arc(cx, cy, r * 1.25, 0, Math.PI * 2);
         dCtx.fill();
 
-        // Bump map cavity + raised ejecta rim
         const bCGrad = bCtx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.25);
-        bCGrad.addColorStop(0, 'rgba(20, 20, 20, 0.85)');
-        bCGrad.addColorStop(0.75, 'rgba(70, 70, 70, 0.6)');
-        bCGrad.addColorStop(0.92, 'rgba(245, 245, 245, 0.9)');
+        bCGrad.addColorStop(0, 'rgba(18, 18, 18, 0.85)');
+        bCGrad.addColorStop(0.75, 'rgba(72, 72, 72, 0.6)');
+        bCGrad.addColorStop(0.92, 'rgba(245, 245, 245, 0.92)');
         bCGrad.addColorStop(1, 'rgba(128, 128, 128, 0)');
         bCtx.fillStyle = bCGrad;
         bCtx.beginPath();
@@ -990,10 +948,10 @@
         drawCrater(cx, cy, c.r, c.rays);
       });
 
-      for (let i = 0; i < 360; i++) {
+      for (let i = 0; i < 420; i++) {
         const cx = Math.random() * width;
         const cy = Math.random() * height;
-        const r = 2.5 + Math.random() * 14;
+        const r = 2.0 + Math.random() * 14;
         drawCrater(cx, cy, r, false);
       }
 
@@ -1002,12 +960,44 @@
       return { mapTex, bumpTex };
     }
 
+    /**
+     * Builds crisp 30-degree selenographic latitude/longitude coordinate lines
+     * with highlighted Equator and Prime Meridian
+     */
+    function buildSelenographicGrid(radius) {
+      const group = new THREE.Group();
+      const regularMat = new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.22 });
+      const primeMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.45 });
+
+      // Parallels (Latitudes: -60, -30, 0, +30, +60)
+      for (let lat = -60; lat <= 60; lat += 30) {
+        const pts = [];
+        for (let lon = -180; lon <= 180; lon += 4) {
+          pts.push(latLonToVec3(lat, lon, radius));
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        group.add(new THREE.Line(geo, lat === 0 ? primeMat : regularMat));
+      }
+
+      // Meridians (Longitudes every 30 deg)
+      for (let lon = -150; lon <= 180; lon += 30) {
+        const pts = [];
+        for (let lat = -90; lat <= 90; lat += 3) {
+          pts.push(latLonToVec3(lat, lon, radius));
+        }
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        group.add(new THREE.Line(geo, lon === 0 ? primeMat : regularMat));
+      }
+
+      return group;
+    }
+
     function init3DScene() {
       const canvas = document.getElementById('canvas-main-3d');
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x03050a);
+      scene.background = new THREE.Color(0x0a0d12);
 
-      camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
       updateCameraPosition();
 
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -1016,12 +1006,12 @@
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-      // Deep Space Starfield
+      // Subtle, realistic background stars
       const starGeo = new THREE.BufferGeometry();
-      const starCount = 1600;
+      const starCount = 1200;
       const starPos = new Float32Array(starCount * 3);
       for (let i = 0; i < starCount * 3; i += 3) {
-        const r = 140 + Math.random() * 180;
+        const r = 160 + Math.random() * 180;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         starPos[i] = r * Math.sin(phi) * Math.cos(theta);
@@ -1029,16 +1019,11 @@
         starPos[i + 2] = r * Math.sin(phi) * Math.sin(theta);
       }
       starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-      const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.65, transparent: true, opacity: 0.85 });
+      const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.5, transparent: true, opacity: 0.65 });
       scene.add(new THREE.Points(starGeo, starMat));
 
-      // Build Orbital 3D Sci-Fi Globe Group
       buildOrbitalGlobeGroup();
-
-      // Build Topographic Surface Horizon Group
       buildSurfaceHorizonGroup();
-
-      // Pointer / Mouse / Touch Interaction
       setupViewportControls(canvas);
     }
 
@@ -1046,109 +1031,45 @@
       globeGroup = new THREE.Group();
       scene.add(globeGroup);
 
-      // Subtle ambient fill so lunar night side remains readable as a tactical hologram
-      const hemiLight = new THREE.AmbientLight(0x16243d, 0.55);
-      globeGroup.add(hemiLight);
+      // Faint Earthshine ambient fill so shadowed terrain features remain subtly visible
+      const ambientLight = new THREE.AmbientLight(0x1b2432, 0.35);
+      globeGroup.add(ambientLight);
 
-      // Primary Directional Sunlight
-      orbitalSunLight = new THREE.DirectionalLight(0xfffbeb, 2.3);
+      // Realistic Solar Directional Light
+      orbitalSunLight = new THREE.DirectionalLight(0xfffdf5, 2.35);
       globeGroup.add(orbitalSunLight);
 
-      // 1. Lunar Core Sphere with Procedural Crater Albedo & Bump Relief
+      // 1. Lunar Sphere (Physically based regolith material)
       const { mapTex, bumpTex } = createProceduralLunarTextures();
-      // Rotate sphere -90 deg on Y so UV u=0.5 (lon=0) aligns with +Z axis
       const moonGeo = new THREE.SphereGeometry(GLOBE_RADIUS, 72, 72);
       moonGeo.rotateY(-Math.PI / 2);
       const moonMat = new THREE.MeshStandardMaterial({
         map: mapTex,
         bumpMap: bumpTex,
-        bumpScale: 0.14,
-        roughness: 0.88,
-        metalness: 0.08
+        bumpScale: 0.13,
+        roughness: 0.92,
+        metalness: 0.04
       });
       moonSphere = new THREE.Mesh(moonGeo, moonMat);
       globeGroup.add(moonSphere);
 
-      // 2. Holographic Latitude / Longitude Coordinate Wireframe Overlay
-      const holoGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.006, 36, 18);
-      const holoMat = new THREE.MeshBasicMaterial({
-        color: 0x00f0ff,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.09
-      });
-      holoWireSphere = new THREE.Mesh(holoGeo, holoMat);
-      globeGroup.add(holoWireSphere);
+      // 2. Precision Selenographic Coordinate Grid
+      coordGridGroup = buildSelenographicGrid(GLOBE_RADIUS * 1.003);
+      globeGroup.add(coordGridGroup);
 
-      // 3. Sci-Fi Fresnel Atmospheric / Energy Rim Shader
-      const fresnelGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.035, 64, 64);
-      const fresnelMat = new THREE.ShaderMaterial({
-        uniforms: {
-          glowColor: { value: new THREE.Color(0x00f0ff) },
-          viewVector: { value: camera.position }
-        },
-        vertexShader: `
-          varying vec3 vNormal;
-          varying vec3 vPositionNormal;
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 glowColor;
-          varying vec3 vNormal;
-          varying vec3 vPositionNormal;
-          void main() {
-            float intensity = pow(0.65 - dot(vNormal, vPositionNormal), 3.2);
-            gl_FragColor = vec4(glowColor, clamp(intensity * 1.15, 0.0, 0.85));
-          }
-        `,
-        side: THREE.FrontSide,
-        blending: THREE.AdditiveBlending,
+      // 3. Clean Orbital Reference Plane Ring
+      const eclipticGeo = new THREE.RingGeometry(GLOBE_RADIUS * 1.38, GLOBE_RADIUS * 1.388, 128);
+      eclipticGeo.rotateX(Math.PI / 2);
+      const eclipticMat = new THREE.MeshBasicMaterial({
+        color: 0x334155,
         transparent: true,
-        depthWrite: false
-      });
-      fresnelSphere = new THREE.Mesh(fresnelGeo, fresnelMat);
-      globeGroup.add(fresnelSphere);
-
-      // 4. Rotating Graduated Orbital Telemetry Rings
-      const ringGeo1 = new THREE.RingGeometry(GLOBE_RADIUS * 1.32, GLOBE_RADIUS * 1.345, 96);
-      ringGeo1.rotateX(Math.PI / 2);
-      const ringMat1 = new THREE.MeshBasicMaterial({
-        color: 0x00f0ff,
-        transparent: true,
-        opacity: 0.32,
+        opacity: 0.55,
         side: THREE.DoubleSide
       });
-      outerRing1 = new THREE.Mesh(ringGeo1, ringMat1);
-      outerRing1.rotation.z = 0.12;
-      globeGroup.add(outerRing1);
+      eclipticRing = new THREE.Mesh(eclipticGeo, eclipticMat);
+      globeGroup.add(eclipticRing);
 
-      const ringGeo2 = new THREE.RingGeometry(GLOBE_RADIUS * 1.46, GLOBE_RADIUS * 1.472, 96);
-      ringGeo2.rotateX(Math.PI / 2.3);
-      const ringMat2 = new THREE.MeshBasicMaterial({
-        color: 0xffaa00,
-        transparent: true,
-        opacity: 0.24,
-        side: THREE.DoubleSide
-      });
-      outerRing2 = new THREE.Mesh(ringGeo2, ringMat2);
-      globeGroup.add(outerRing2);
-
-      // Polar Scan Ring (Sweeps vertically)
-      const scanGeo = new THREE.TorusGeometry(GLOBE_RADIUS * 1.015, 0.018, 8, 96);
-      scanGeo.rotateX(Math.PI / 2);
-      const scanMat = new THREE.MeshBasicMaterial({
-        color: 0x00f0ff,
-        transparent: true,
-        opacity: 0.55
-      });
-      scanTorus = new THREE.Mesh(scanGeo, scanMat);
-      globeGroup.add(scanTorus);
-
-      // 5. Curated Site Surface Beacons (Vertical Light Pillars + Pulse Rings)
+      // 4. Minimalist Surface Site Markers
       const labelsLayer = document.getElementById('beacon-labels-layer');
       labelsLayer.innerHTML = '';
       beaconMeshes = [];
@@ -1161,32 +1082,26 @@
         bGroup.position.copy(pos);
         bGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
 
-        // Base glowing ring
-        const rGeo = new THREE.RingGeometry(0.08, 0.16, 24);
+        // Crisp surface ring marker
+        const rGeo = new THREE.RingGeometry(0.06, 0.11, 24);
         rGeo.rotateX(-Math.PI / 2);
         const rMat = new THREE.MeshBasicMaterial({
-          color: 0x00f0ff,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.85
+          color: 0x94a3b8,
+          side: THREE.DoubleSide
         });
         const baseRing = new THREE.Mesh(rGeo, rMat);
-        baseRing.position.y = 0.02;
+        baseRing.position.y = 0.015;
         bGroup.add(baseRing);
 
-        // Vertical holographic beacon needle
-        const needleGeo = new THREE.CylinderGeometry(0.015, 0.035, 0.65, 8);
-        const needleMat = new THREE.MeshBasicMaterial({
-          color: 0x00f0ff,
-          transparent: true,
-          opacity: 0.8
-        });
-        const needle = new THREE.Mesh(needleGeo, needleMat);
-        needle.position.y = 0.32;
-        bGroup.add(needle);
+        // Thin vertical telemetry stem
+        const stemGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.42, 8);
+        const stemMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+        const stem = new THREE.Mesh(stemGeo, stemMat);
+        stem.position.y = 0.21;
+        bGroup.add(stem);
 
         // Invisible hit sphere for easy clicking
-        const hitGeo = new THREE.SphereGeometry(0.32, 12, 12);
+        const hitGeo = new THREE.SphereGeometry(0.3, 12, 12);
         const hitMat = new THREE.MeshBasicMaterial({ visible: false });
         const hitMesh = new THREE.Mesh(hitGeo, hitMat);
         hitMesh.userData = { siteId: site.id };
@@ -1194,10 +1109,10 @@
 
         globeGroup.add(bGroup);
 
-        // HTML Floating Tactical Tag
+        // Clean technical data tag
         const labelEl = document.createElement('div');
-        labelEl.className = 'beacon-label px-1.5 py-0.5 rounded bg-void/85 border border-cyan-500/40 text-[10px] font-mono text-cyan-200 whitespace-nowrap shadow-md';
-        labelEl.innerHTML = `<span class="text-cyan-400">◈</span> ${site.name}`;
+        labelEl.className = 'beacon-label px-1.5 py-0.5 rounded bg-surface/90 border border-borderline text-[10px] font-mono text-slate-200 whitespace-nowrap shadow';
+        labelEl.textContent = `${site.code} · ${site.name}`;
         labelEl.onclick = (e) => {
           e.stopPropagation();
           selectSiteById(site.id);
@@ -1208,71 +1123,58 @@
           site,
           group: bGroup,
           baseRing,
-          needle,
+          stem,
           hitMesh,
           labelEl,
           worldPos: pos
         });
       });
 
-      // Custom Coordinate Laser Pin Group
+      // Active Selection Pin (Emerald Target Reticle)
       customPinGroup = new THREE.Group();
-      const cRingGeo = new THREE.RingGeometry(0.12, 0.24, 32);
+      const cRingGeo = new THREE.RingGeometry(0.11, 0.18, 32);
       cRingGeo.rotateX(-Math.PI / 2);
-      const cRingMat = new THREE.MeshBasicMaterial({ color: 0x00ff9d, side: THREE.DoubleSide });
-      const cRing = new THREE.Mesh(cRingGeo, cRingMat);
-      cRing.position.y = 0.03;
+      const cRing = new THREE.Mesh(cRingGeo, new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide }));
+      cRing.position.y = 0.025;
       customPinGroup.add(cRing);
 
-      const cBeamGeo = new THREE.CylinderGeometry(0.02, 0.06, 1.1, 12);
-      const cBeamMat = new THREE.MeshBasicMaterial({ color: 0x00ff9d, transparent: true, opacity: 0.85 });
-      const cBeam = new THREE.Mesh(cBeamGeo, cBeamMat);
-      cBeam.position.y = 0.55;
-      customPinGroup.add(cBeam);
+      const cStemGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.72, 8);
+      const cStem = new THREE.Mesh(cStemGeo, new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+      cStem.position.y = 0.36;
+      customPinGroup.add(cStem);
+
+      const cTip = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 12), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+      cTip.position.y = 0.72;
+      customPinGroup.add(cTip);
       globeGroup.add(customPinGroup);
 
-      // 6. Orbital Sun Sphere & Solar Vector Line
-      const sunGeo = new THREE.SphereGeometry(0.55, 20, 20);
-      const sunMat = new THREE.MeshBasicMaterial({ color: 0xffcc33 });
-      orbitalSunMesh = new THREE.Mesh(sunGeo, sunMat);
+      // 5. Directional Sun Vector Marker & Dashed Solar Line
+      orbitalSunMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.45, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xf59e0b })
+      );
       globeGroup.add(orbitalSunMesh);
 
       const sunRayGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-      const sunRayMat = new THREE.LineDashedMaterial({
-        color: 0xffaa00,
-        dashSize: 0.35,
-        gapSize: 0.2,
-        transparent: true,
-        opacity: 0.65
-      });
-      orbitalSunRay = new THREE.Line(sunRayGeo, sunRayMat);
+      orbitalSunRay = new THREE.Line(
+        sunRayGeo,
+        new THREE.LineDashedMaterial({ color: 0xf59e0b, dashSize: 0.3, gapSize: 0.2, transparent: true, opacity: 0.7 })
+      );
       globeGroup.add(orbitalSunRay);
 
-      // 7. Orbital Earth Hologram & Pulsing DTE Laser Link
-      const earthGeo = new THREE.SphereGeometry(0.48, 24, 24);
-      const earthMat = new THREE.MeshStandardMaterial({
-        color: 0x00f0ff,
-        emissive: 0x0284c7,
-        emissiveIntensity: 0.8,
-        wireframe: false
-      });
-      orbitalEarthMesh = new THREE.Mesh(earthGeo, earthMat);
-      // Add subtle wireframe cage around Earth
-      const eWire = new THREE.Mesh(
-        new THREE.SphereGeometry(0.54, 16, 12),
-        new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.35 })
+      // 6. Earth Reference Sphere & Direct-to-Earth (DTE) Telemetry Vector
+      orbitalEarthMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.42, 24, 24),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.5, emissive: 0x0369a1, emissiveIntensity: 0.45 })
       );
-      orbitalEarthMesh.add(eWire);
       globeGroup.add(orbitalEarthMesh);
 
       const dteGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-      const dteMat = new THREE.LineBasicMaterial({
-        color: 0x00f0ff,
-        transparent: true,
-        opacity: 0.9
-      });
-      orbitalDteLaser = new THREE.Line(dteGeo, dteMat);
-      globeGroup.add(orbitalDteLaser);
+      orbitalDteLine = new THREE.Line(
+        dteGeo,
+        new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 0.25, gapSize: 0.15, transparent: true, opacity: 0.85 })
+      );
+      globeGroup.add(orbitalDteLine);
     }
 
     function buildSurfaceHorizonGroup() {
@@ -1280,17 +1182,17 @@
       surfaceGroup.visible = false;
       scene.add(surfaceGroup);
 
-      const amb = new THREE.AmbientLight(0x16243d, 0.45);
+      const amb = new THREE.AmbientLight(0x1b2432, 0.35);
       surfaceGroup.add(amb);
 
-      surfaceSunLight = new THREE.DirectionalLight(0xfffbeb, 2.3);
+      surfaceSunLight = new THREE.DirectionalLight(0xfffdf5, 2.35);
       surfaceSunLight.castShadow = true;
       surfaceSunLight.shadow.mapSize.width = 1024;
       surfaceSunLight.shadow.mapSize.height = 1024;
       surfaceGroup.add(surfaceSunLight);
 
-      // Cratered Surface Terrain
-      const geo = new THREE.PlaneGeometry(110, 110, 90, 90);
+      // Cratered Regolith Terrain
+      const geo = new THREE.PlaneGeometry(110, 110, 96, 96);
       geo.rotateX(-Math.PI / 2);
       const pos = geo.attributes.position;
       const craters = [
@@ -1320,25 +1222,28 @@
       }
       geo.computeVertexNormals();
       const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-        color: 0x64748b,
-        roughness: 0.9,
+        color: 0x717885,
+        roughness: 0.94,
         flatShading: true
       }));
       terrain.receiveShadow = true;
       surfaceGroup.add(terrain);
 
-      // Holographic Tactical Grid Overlay on Surface
-      const gridHelper = new THREE.GridHelper(40, 40, 0x00f0ff, 0x00f0ff);
-      gridHelper.material.transparent = true;
-      gridHelper.material.opacity = 0.12;
-      gridHelper.position.y = 0.03;
-      surfaceGroup.add(gridHelper);
+      // Compass Azimuth Reference Ring on Surface
+      const compassRing = new THREE.RingGeometry(4.2, 4.26, 64);
+      compassRing.rotateX(-Math.PI / 2);
+      const compassMesh = new THREE.Mesh(
+        compassRing,
+        new THREE.MeshBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.55 })
+      );
+      compassMesh.position.y = 0.03;
+      surfaceGroup.add(compassMesh);
 
-      // Sci-Fi Lunar Lander at Origin
+      // Lunar Lander at Origin
       const lander = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.CylinderGeometry(1.05, 1.2, 1.1, 8),
-        new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.75, roughness: 0.25 })
+        new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.7, roughness: 0.3 })
       );
       body.position.y = 1.15;
       body.castShadow = true;
@@ -1346,7 +1251,7 @@
 
       const cabin = new THREE.Mesh(
         new THREE.CylinderGeometry(0.72, 0.92, 0.85, 8),
-        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.35, roughness: 0.45 })
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.3, roughness: 0.5 })
       );
       cabin.position.y = 2.05;
       cabin.castShadow = true;
@@ -1366,21 +1271,21 @@
       surfaceGroup.add(lander);
 
       surfaceSunSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(2.0, 20, 20),
-        new THREE.MeshBasicMaterial({ color: 0xffdd55 })
+        new THREE.SphereGeometry(1.8, 20, 20),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
       );
       surfaceGroup.add(surfaceSunSphere);
 
       surfaceEarthSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(1.7, 20, 20),
-        new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x0284c7, emissiveIntensity: 0.8 })
+        new THREE.SphereGeometry(1.5, 20, 20),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0369a1, emissiveIntensity: 0.55 })
       );
       surfaceGroup.add(surfaceEarthSphere);
 
       const sBeamGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 2.5, 0), new THREE.Vector3(0, 20, -30)]);
       surfaceDteBeam = new THREE.Line(
         sBeamGeo,
-        new THREE.LineDashedMaterial({ color: 0x00f0ff, dashSize: 1.2, gapSize: 0.7 })
+        new THREE.LineDashedMaterial({ color: 0x38bdf8, dashSize: 1.0, gapSize: 0.6 })
       );
       surfaceGroup.add(surfaceDteBeam);
     }
@@ -1437,7 +1342,7 @@
       }, { passive: true });
       canvas.addEventListener('touchend', () => { isDragging = false; });
 
-      // Click on 3D Globe to select beacon or place custom laser coordinates
+      // Click on 3D Lunar Sphere
       canvas.addEventListener('click', (e) => {
         if (dragMoved || state.sceneMode !== 'globe') return;
         const rect = canvas.getBoundingClientRect();
@@ -1445,20 +1350,16 @@
         pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(pointerNDC, camera);
 
-        // 1. Check beacon hit meshes first
         const hitTargets = beaconMeshes.map(b => b.hitMesh);
         const beaconHits = raycaster.intersectObjects(hitTargets);
         if (beaconHits.length > 0) {
-          const siteId = beaconHits[0].object.userData.siteId;
-          selectSiteById(siteId);
+          selectSiteById(beaconHits[0].object.userData.siteId);
           return;
         }
 
-        // 2. Check intersection with Lunar Sphere surface
         const moonHits = raycaster.intersectObject(moonSphere);
         if (moonHits.length > 0) {
-          const pt = moonHits[0].point;
-          const { lat, lon } = vec3ToLatLon(pt);
+          const { lat, lon } = vec3ToLatLon(moonHits[0].point);
           document.getElementById('custom-lat').value = lat.toFixed(2);
           document.getElementById('custom-lon').value = lon.toFixed(2);
           applyCustomCoordinates();
@@ -1485,45 +1386,44 @@
       const sitePos = latLonToVec3(site.lat, site.lon, GLOBE_RADIUS);
       const siteNormal = sitePos.clone().normalize();
 
-      // Update Custom / Active Pin
+      // Update Active Site Marker
       customPinGroup.position.copy(sitePos);
       customPinGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), siteNormal);
 
-      // Update Beacon Colors (Active = Emerald/Amber, Standard = Cyan)
+      // Update Curated Site Markers
       beaconMeshes.forEach(b => {
         const isSelected = b.site.id === site.id;
-        const hex = isSelected ? 0x00ff9d : 0x00f0ff;
+        const hex = isSelected ? 0x10b981 : 0x94a3b8;
         b.baseRing.material.color.setHex(hex);
-        b.needle.material.color.setHex(hex);
-        b.needle.scale.y = isSelected ? 1.65 : 1.0;
+        b.stem.material.color.setHex(hex);
+        b.stem.scale.y = isSelected ? 1.5 : 1.0;
         b.labelEl.className = isSelected
-          ? 'beacon-label px-2 py-0.5 rounded bg-emerald-950/90 border border-emerald-400 text-[10px] font-mono font-bold text-emerald-200 whitespace-nowrap shadow-[0_0_12px_rgba(0,255,157,0.5)] z-20'
-          : 'beacon-label px-1.5 py-0.5 rounded bg-void/85 border border-cyan-500/40 text-[10px] font-mono text-cyan-200 whitespace-nowrap';
+          ? 'beacon-label px-2 py-0.5 rounded bg-emerald-950/95 border border-emerald-400 text-[10px] font-mono font-semibold text-emerald-200 whitespace-nowrap shadow-md z-20'
+          : 'beacon-label px-1.5 py-0.5 rounded bg-surface/90 border border-borderline text-[10px] font-mono text-slate-200 whitespace-nowrap shadow';
       });
 
-      // Orbital Sun Position & Directional Light
+      // Orbital Sun Vector
       const sunDir = latLonToVec3(tel.solarDeclination, tel.subSolarLon, 1).normalize();
-      orbitalSunLight.position.copy(sunDir.clone().multiplyScalar(30));
+      orbitalSunLight.position.copy(sunDir.clone().multiplyScalar(32));
       orbitalSunMesh.position.copy(sunDir.clone().multiplyScalar(11.5));
       orbitalSunRay.geometry.setFromPoints([
-        sitePos.clone().addScaledVector(siteNormal, 0.15),
+        sitePos.clone().addScaledVector(siteNormal, 0.1),
         orbitalSunMesh.position
       ]);
       orbitalSunRay.computeLineDistances();
       orbitalSunRay.visible = tel.isDaylight;
 
-      // Orbital Earth Position & DTE Laser Link
+      // Orbital Earth & DTE Line
       const earthDir = latLonToVec3(tel.subEarthLat, tel.subEarthLon, 1).normalize();
       orbitalEarthMesh.position.copy(earthDir.clone().multiplyScalar(10.8));
-      orbitalDteLaser.geometry.setFromPoints([
-        sitePos.clone().addScaledVector(siteNormal, 0.2),
+      orbitalDteLine.geometry.setFromPoints([
+        sitePos.clone().addScaledVector(siteNormal, 0.15),
         orbitalEarthMesh.position
       ]);
-      // Laser turns Cyan when DTE active, Tactical Red if blocked by Moon bulk
-      orbitalDteLaser.material.color.setHex(tel.isEarthVisible ? 0x00f0ff : 0xff3355);
-      orbitalDteLaser.material.opacity = tel.isEarthVisible ? 0.9 : 0.45;
+      orbitalDteLine.material.color.setHex(tel.isEarthVisible ? 0x38bdf8 : 0xef4444);
+      orbitalDteLine.computeLineDistances();
 
-      // Update Surface Horizon Scene if active
+      // Surface Horizon View
       const altAzToVec = (altDeg, azDeg, rad) => {
         const alt = altDeg * DEG2RAD;
         const az = azDeg * DEG2RAD;
@@ -1535,7 +1435,7 @@
       surfaceSunSphere.position.copy(sSunVec);
       surfaceSunLight.position.copy(sSunVec);
       surfaceSunSphere.visible = tel.isDaylight;
-      surfaceSunLight.intensity = tel.isDaylight ? Math.max(0.4, Math.min(2.4, tel.sunAlt / 8)) : 0;
+      surfaceSunLight.intensity = tel.isDaylight ? Math.max(0.45, Math.min(2.4, tel.sunAlt / 8)) : 0;
 
       const sEarthVec = altAzToVec(tel.earthAlt, tel.earthAz, 46);
       surfaceEarthSphere.position.copy(sEarthVec);
@@ -1547,9 +1447,6 @@
       }
     }
 
-    /**
-     * Projects 3D surface beacon coordinates onto 2D screen space and hides labels on the back side of the Moon
-     */
     function updateProjectedBeaconLabels() {
       const labelsLayer = document.getElementById('beacon-labels-layer');
       if (state.sceneMode !== 'globe') {
@@ -1565,25 +1462,25 @@
       beaconMeshes.forEach(b => {
         const normal = b.worldPos.clone().normalize();
         const dot = normal.dot(camDir);
-        if (dot < 0.12) {
+        if (dot < 0.14) {
           b.labelEl.style.opacity = '0';
           b.labelEl.style.pointerEvents = 'none';
           return;
         }
-        const tipPos = b.worldPos.clone().addScaledVector(normal, 0.72);
+        const tipPos = b.worldPos.clone().addScaledVector(normal, 0.48);
         tipPos.project(camera);
         const x = (tipPos.x * 0.5 + 0.5) * w;
         const y = (-tipPos.y * 0.5 + 0.5) * h;
 
         b.labelEl.style.left = `${x}px`;
         b.labelEl.style.top = `${y}px`;
-        b.labelEl.style.opacity = Math.min(1, (dot - 0.12) * 3).toFixed(2);
+        b.labelEl.style.opacity = Math.min(1, (dot - 0.14) * 3.2).toFixed(2);
         b.labelEl.style.pointerEvents = 'auto';
       });
     }
 
     // =========================================================================
-    // 5. 2D MINI RADAR & 29.53-DAY SYNODIC TIMELINE RENDERERS
+    // 5. 2D TERMINATOR MINI-MAP & SYNODIC TIMELINE RENDERERS
     // =========================================================================
     function renderMiniRadar2D(tel) {
       const canvas = document.getElementById('canvas-radar-2d');
@@ -1598,14 +1495,13 @@
       const ctx = canvas.getContext('2d');
       ctx.save();
       ctx.scale(dpr, dpr);
-      ctx.fillStyle = '#03060d';
+      ctx.fillStyle = '#0a0d12';
       ctx.fillRect(0, 0, w, h);
 
       if (state.radarProj === 'global') {
         const lonToX = (lon) => ((lon + 180) / 360) * w;
         const latToY = (lat) => ((90 - lat) / 180) * h;
 
-        // Terminator day/night shading
         const cols = 48, rows = 24;
         const cw = w / cols, ch = h / rows;
         for (let r = 0; r < rows; r++) {
@@ -1613,13 +1509,13 @@
           for (let c = 0; c < cols; c++) {
             const lon = -180 + ((c + 0.5) / cols) * 360;
             const s = computeTopocentricAltAz(lat, lon, tel.solarDeclination, tel.subSolarLon);
-            ctx.fillStyle = s.altitude > 0 ? 'rgba(0, 240, 255, 0.14)' : 'rgba(2, 4, 10, 0.85)';
+            ctx.fillStyle = s.altitude > 0 ? '#273142' : '#0d1118';
             ctx.fillRect(c * cw, r * ch, cw + 0.5, ch + 0.5);
           }
         }
 
-        // Near-side boundary lines (-90°, +90°)
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
+        // Near-side boundary (-90° / +90°)
+        ctx.strokeStyle = 'rgba(139, 155, 180, 0.35)';
         ctx.setLineDash([2, 2]);
         [lonToX(-90), lonToX(90)].forEach(x => {
           ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
@@ -1627,38 +1523,35 @@
         ctx.setLineDash([]);
 
         // Subsolar & SubEarth
-        ctx.fillStyle = '#ffaa00';
+        ctx.fillStyle = '#f59e0b';
         ctx.beginPath(); ctx.arc(lonToX(tel.subSolarLon), latToY(tel.solarDeclination), 3, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = '#00f0ff';
+        ctx.fillStyle = '#38bdf8';
         ctx.beginPath(); ctx.arc(lonToX(tel.subEarthLon), latToY(tel.subEarthLat), 2.5, 0, Math.PI * 2); ctx.fill();
 
-        // Active site crosshair
+        // Active site marker
         const sx = lonToX(state.selectedSite.lon);
         const sy = latToY(state.selectedSite.lat);
-        ctx.strokeStyle = '#00ff9d';
+        ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(sx, sy, 4.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.stroke();
       } else {
-        // South Pole Radar View (60°S to 90°S)
         const cx = w / 2, cy = h / 2, maxR = Math.min(w, h) * 0.43;
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
+        ctx.strokeStyle = '#242f40';
         ctx.beginPath(); ctx.arc(cx, cy, maxR, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath(); ctx.arc(cx, cy, maxR * 0.5, 0, Math.PI * 2); ctx.stroke();
 
-        // Sun direction line
         const sunAng = (tel.subSolarLon * DEG2RAD) + Math.PI / 2;
-        ctx.strokeStyle = '#ffaa00';
+        ctx.strokeStyle = '#f59e0b';
         ctx.beginPath(); ctx.moveTo(cx, cy);
         ctx.lineTo(cx + Math.cos(sunAng) * maxR, cy + Math.sin(sunAng) * maxR);
         ctx.stroke();
 
-        // Active site if in south pole
         if (state.selectedSite.lat <= -60) {
           const coLat = Math.abs(-90 - state.selectedSite.lat);
           const r = (coLat / 30) * maxR;
           const th = (state.selectedSite.lon * DEG2RAD) + Math.PI / 2;
-          ctx.fillStyle = '#00ff9d';
+          ctx.fillStyle = '#10b981';
           ctx.beginPath(); ctx.arc(cx + r * Math.cos(th), cy + r * Math.sin(th), 3.5, 0, Math.PI * 2); ctx.fill();
         }
       }
@@ -1692,19 +1585,19 @@
         const d = new Date(startMs + (i / samples) * (halfCycleMs * 2));
         const t = calculateLunarTelemetry(state.selectedSite, d);
 
-        // Top: Solar illumination
+        // Top bar: Solar daylight
         ctx.fillStyle = t.isDaylight
-          ? `rgba(255, 170, 0, ${Math.min(1, 0.45 + (t.sunAlt / 45) * 0.55).toFixed(2)})`
-          : '#060a14';
+          ? `rgba(245, 158, 11, ${Math.min(1, 0.45 + (t.sunAlt / 45) * 0.55).toFixed(2)})`
+          : '#0f141d';
         ctx.fillRect(i * sliceW, 0, sliceW + 0.6, h * 0.52);
 
-        // Bottom: Earth DTE visibility
-        ctx.fillStyle = t.isEarthVisible ? 'rgba(0, 240, 255, 0.85)' : '#1e0912';
+        // Bottom bar: Earth LOS visibility
+        ctx.fillStyle = t.isEarthVisible ? '#0284c7' : '#2a1219';
         ctx.fillRect(i * sliceW, h * 0.56, sliceW + 0.6, h * 0.44);
       }
 
       // Center playhead
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = '#eef2f6';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
 
@@ -1712,7 +1605,7 @@
     }
 
     // =========================================================================
-    // 6. UI RENDERING & STATE SYNCHRONIZATION
+    // 6. UI RENDERING & TELEMETRY BINDING
     // =========================================================================
     function renderSitesList() {
       const container = document.getElementById('sites-list-container');
@@ -1726,9 +1619,9 @@
       for (const [program, sites] of Object.entries(groups)) {
         html += `
           <div>
-            <div class="text-[10px] font-mono font-bold text-cyan-400/80 tracking-widest mb-1 px-1 flex justify-between">
+            <div class="text-[10px] font-mono font-semibold text-steel uppercase tracking-wider mb-1.5 px-1 flex justify-between">
               <span>${program}</span>
-              <span>[${sites.length}]</span>
+              <span>${sites.length}</span>
             </div>
             <div class="space-y-1">
         `;
@@ -1740,20 +1633,23 @@
 
           html += `
             <div onclick="selectSiteById('${site.id}')"
-              class="p-2 rounded border cursor-pointer transition-all ${
+              class="p-2 rounded border cursor-pointer transition-colors ${
                 isSelected
-                  ? 'bg-cyan-500/20 border-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.2)]'
-                  : 'bg-void/70 border-slate-800/90 hover:border-cyan-500/40 hover:bg-cyan-950/20'
+                  ? 'bg-panel border-sky-400'
+                  : 'bg-obsidian/60 border-borderline hover:border-slate-600 hover:bg-panel/60'
               }">
               <div class="flex items-center justify-between gap-1">
-                <span class="text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-200'}">${site.name}</span>
-                ${isCompared ? '<span class="text-[9px] font-mono px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">COMP</span>' : ''}
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] font-mono px-1 rounded bg-surface border border-borderline text-steel">${site.code}</span>
+                  <span class="text-xs font-semibold ${isSelected ? 'text-white' : 'text-telemetry'}">${site.name}</span>
+                </div>
+                ${isCompared ? '<span class="text-[9px] font-mono px-1 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">COMP</span>' : ''}
               </div>
-              <div class="text-[10px] text-slate-400">${site.subtitle}</div>
-              <div class="mt-1 flex items-center justify-between text-[10px] font-mono">
-                <span class="text-cyan-300/80">${latStr} ${lonStr}</span>
-                <span class="${Math.abs(site.lon) > 98 ? 'text-rose-400' : 'text-emerald-400'}">
-                  ${Math.abs(site.lon) > 98 ? 'NO-DTE' : 'DTE OK'}
+              <div class="text-[11px] text-steel mt-0.5">${site.subtitle}</div>
+              <div class="mt-1 flex items-center justify-between text-[10px] font-mono tabular-nums">
+                <span class="text-slate-300">${latStr} ${lonStr}</span>
+                <span class="${Math.abs(site.lon) > 98 ? 'text-red-400' : 'text-emerald-400'}">
+                  ${Math.abs(site.lon) > 98 ? 'RELÉ L2' : 'DTE LOS'}
                 </span>
               </div>
             </div>
@@ -1770,15 +1666,15 @@
       const lonStr = `${Math.abs(site.lon).toFixed(2)}°${site.lon >= 0 ? 'E' : 'W'}`;
 
       document.getElementById('active-coords-mini').textContent = `${latStr} ${lonStr}`;
-      document.getElementById('hud-target-name').textContent = site.name.toUpperCase();
-      document.getElementById('hud-target-coords').textContent = `[${latStr}, ${lonStr}]`;
+      document.getElementById('hud-target-name').textContent = site.name;
+      document.getElementById('hud-target-coords').textContent = `${latStr}, ${lonStr}`;
 
       const alertBanner = document.getElementById('hud-farside-alert');
       if (!tel.isEarthVisible) {
         alertBanner.classList.remove('hidden');
         document.getElementById('hud-farside-text').textContent = tel.isFarSide
-          ? 'CARA OCULTA LUNAR - REQUIERE SATÉLITE RELÉ L2'
-          : 'TIERRA BAJO HORIZONTE POR LIBRACIÓN';
+          ? 'Cara oculta lunar — Enlace directo Tierra (DTE) bloqueado; requiere satélite relé'
+          : 'Tierra bajo el horizonte local por libración lunar';
       } else {
         alertBanner.classList.add('hidden');
       }
@@ -1796,40 +1692,40 @@
       vScore.textContent = `${tel.score} / 100`;
 
       if (tel.score >= 75) {
-        vCard.className = 'p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-950/30 transition-all';
-        vStatus.className = 'font-display text-xs sm:text-sm font-bold text-emerald-300 mt-0.5 tracking-wide';
-        vStatus.textContent = '● VENTANA ÓPTIMA DE ALUNIZAJE';
-        vScore.className = 'font-display text-sm font-extrabold text-emerald-300 glow-emerald';
+        vCard.className = 'p-2.5 rounded-md border border-emerald-500/40 bg-emerald-950/20';
+        vStatus.className = 'text-xs sm:text-sm font-semibold text-emerald-400 mt-0.5';
+        vStatus.textContent = 'Ventana Óptima de Alunizaje';
+        vScore.className = 'font-mono text-xs font-bold text-emerald-400 tabular-nums';
         vDesc.textContent = state.mode === 'tech'
-          ? 'Iluminación solar activa, enlace directo Tierra (DTE) nominal y pendiente segura.'
-          : '¡Condiciones ideales! Hay luz solar para energía y vista directa a la Tierra para comunicaciones.';
+          ? 'Iluminación solar activa, enlace directo Tierra (DTE) nominal y pendiente dentro de tolerancias.'
+          : 'Condiciones ideales: hay luz solar para energía y vista directa hacia la Tierra para comunicaciones.';
       } else if (tel.score >= 45) {
-        vCard.className = 'p-2.5 rounded-lg border border-amber-400/60 bg-amber-950/30 transition-all';
-        vStatus.className = 'font-display text-xs sm:text-sm font-bold text-amber-300 mt-0.5 tracking-wide';
-        vStatus.textContent = '▲ VIABLE CON RESTRICCIONES';
-        vScore.className = 'font-display text-sm font-extrabold text-amber-300 glow-amber';
+        vCard.className = 'p-2.5 rounded-md border border-amber-500/40 bg-amber-950/20';
+        vStatus.className = 'text-xs sm:text-sm font-semibold text-amber-400 mt-0.5';
+        vStatus.textContent = 'Viable con Restricciones Operativas';
+        vScore.className = 'font-mono text-xs font-bold text-amber-400 tabular-nums';
         vDesc.textContent = !tel.isEarthVisible
-          ? 'Sin línea de visión directa a la Tierra. Requiere satélite relé orbital operativo.'
-          : 'Operación condicionada por fase nocturna, pendiente o ángulo solar rasante.';
+          ? 'Sin línea de visión directa a la Tierra. Requiere arquitectura de comunicaciones con satélite relé.'
+          : 'Operación condicionada por fase nocturna, pendiente topográfica o ángulo solar bajo.';
       } else {
-        vCard.className = 'p-2.5 rounded-lg border border-rose-500/70 bg-rose-950/35 transition-all';
-        vStatus.className = 'font-display text-xs sm:text-sm font-bold text-rose-300 mt-0.5 tracking-wide';
-        vStatus.textContent = '✖ VENTANA CRÍTICA / NO RECOMENDADA';
-        vScore.className = 'font-display text-sm font-extrabold text-rose-400 glow-red';
-        vDesc.textContent = 'Noche lunar profunda (-170 °C) sin generación solar. Adelanta o retrasa la fecha en la barra inferior.';
+        vCard.className = 'p-2.5 rounded-md border border-red-500/50 bg-red-950/25';
+        vStatus.className = 'text-xs sm:text-sm font-semibold text-red-400 mt-0.5';
+        vStatus.textContent = 'Ventana Crítica / No Recomendada';
+        vScore.className = 'font-mono text-xs font-bold text-red-400 tabular-nums';
+        vDesc.textContent = 'Noche lunar (-170 °C) sin generación fotovoltaica. Ajusta la fecha en la línea temporal inferior.';
       }
 
       // Solar Metrics
       const sunBadge = document.getElementById('sun-day-badge');
       sunBadge.textContent = tel.isDaylight ? 'DÍA LUNAR' : 'NOCHE LUNAR';
       sunBadge.className = tel.isDaylight
-        ? 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200 border border-amber-400/50'
-        : 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700';
+        ? 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30'
+        : 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface text-steel border border-borderline';
 
       document.getElementById('val-sun-alt').textContent = `${tel.sunAlt >= 0 ? '+' : ''}${tel.sunAlt.toFixed(1)}°`;
       document.getElementById('val-sun-az').textContent = `AZ: ${tel.sunAz.toFixed(1)}°`;
       document.getElementById('val-solar-wm2').textContent = `${tel.effectiveIrradiance} W/m²`;
-      document.getElementById('val-solar-pct').textContent = `CAP: ${((tel.effectiveIrradiance / 1361) * 100).toFixed(1)}%`;
+      document.getElementById('val-solar-pct').textContent = `${((tel.effectiveIrradiance / 1361) * 100).toFixed(1)}% S₀`;
 
       const daysRem = Math.floor(tel.hoursToEvent / 24);
       const hrsRem = Math.round(tel.hoursToEvent % 24);
@@ -1839,15 +1735,15 @@
 
       // Earth Metrics
       const earthBadge = document.getElementById('earth-link-badge');
-      earthBadge.textContent = tel.isEarthVisible ? 'ACTIVO' : 'BLOQUEADO';
+      earthBadge.textContent = tel.isEarthVisible ? 'LOS ACTIVO' : 'OCULTADO';
       earthBadge.className = tel.isEarthVisible
-        ? 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-200 border border-cyan-400/50'
-        : 'text-[10px] font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/50';
+        ? 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30'
+        : 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30';
 
       document.getElementById('val-earth-alt').textContent = `${tel.earthAlt >= 0 ? '+' : ''}${tel.earthAlt.toFixed(1)}°`;
       document.getElementById('val-earth-az').textContent = `AZ: ${tel.earthAz.toFixed(1)}°`;
       document.getElementById('val-link-mode').textContent = tel.isEarthVisible ? 'DIRECTO DTE' : 'REQUIERE RELÉ';
-      document.getElementById('val-link-mode').className = tel.isEarthVisible ? 'text-xs font-bold text-emerald-300 mt-0.5' : 'text-xs font-bold text-rose-400 mt-0.5';
+      document.getElementById('val-link-mode').className = tel.isEarthVisible ? 'text-xs font-mono font-bold text-emerald-400 mt-1' : 'text-xs font-mono font-bold text-red-400 mt-1';
       document.getElementById('val-libration').textContent = `LIB: ${tel.subEarthLat >= 0 ? '+' : ''}${tel.subEarthLat.toFixed(1)}°N`;
       document.getElementById('val-earth-margin').textContent = tel.isEarthVisible
         ? `+${tel.earthAlt.toFixed(1)}° sobre rasante`
@@ -1889,7 +1785,7 @@
       let lat = parseFloat(document.getElementById('custom-lat').value);
       let lon = parseFloat(document.getElementById('custom-lon').value);
       if (isNaN(lat) || isNaN(lon)) {
-        showToast('COORDENADAS INVÁLIDAS');
+        showToast('Coordenadas inválidas');
         return;
       }
       lat = Math.max(-90, Math.min(90, lat));
@@ -1901,20 +1797,21 @@
       const isPolar = Math.abs(lat) > 75;
       state.selectedSite = {
         id: 'custom',
-        program: 'VECTOR CUSTOM',
-        name: `Target (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`,
-        subtitle: 'Coordenada Selenográfica Fijada',
+        code: 'CST',
+        program: 'PERSONALIZADO',
+        name: `Punto (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`,
+        subtitle: 'Coordenada Selenográfica Manual',
         lat,
         lon,
         slope: isPolar ? 7.5 : 3.4,
         boulders: isPolar ? 'Moderado' : 'Bajo',
         ice: isPolar ? 'Posible (PSR)' : 'Nulo',
         regionType: isFar ? 'CARA OCULTA' : (isPolar ? 'REGIÓN POLAR' : 'LATITUD MEDIA'),
-        notes: 'Punto de interés fijado en el globo holográfico 3D. Telemetría orbital calculada en tiempo real.'
+        notes: 'Ubicación seleccionada en el globo lunar 3D. Efemérides y visibilidad calculadas en tiempo real.'
       };
       renderSitesList();
       refreshAll();
-      showToast(`VECTOR FIJADO: ${lat.toFixed(2)}° / ${lon.toFixed(2)}°`);
+      showToast(`Coordenadas fijadas: ${lat.toFixed(2)}°, ${lon.toFixed(2)}°`);
     }
 
     function setSceneMode(mode) {
@@ -1940,6 +1837,14 @@
       refreshAll();
     }
 
+    function toggleCoordinateGrid() {
+      state.showGrid = !state.showGrid;
+      const btn = document.getElementById('btn-toggle-grid');
+      if (coordGridGroup) coordGridGroup.visible = state.showGrid;
+      if (state.showGrid) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+
     function setAppMode(mode) {
       state.mode = mode;
       const btnTech = document.getElementById('btn-mode-tech');
@@ -1947,14 +1852,14 @@
       const badge = document.getElementById('mode-badge');
 
       if (mode === 'tech') {
-        btnTech.className = 'px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 font-semibold transition-all';
-        btnEdu.className = 'px-2 py-1 rounded text-slate-400 hover:text-white transition-all';
-        badge.textContent = 'TÉCNICO';
+        btnTech.className = 'px-2.5 py-1 rounded bg-panel text-telemetry border border-slate-600 transition-colors';
+        btnEdu.className = 'px-2.5 py-1 rounded text-steel hover:text-telemetry transition-colors';
+        badge.textContent = 'INGENIERÍA';
         document.querySelectorAll('.tech-only').forEach(el => el.classList.remove('hidden'));
         document.querySelectorAll('.edu-only').forEach(el => el.classList.add('hidden'));
       } else {
-        btnEdu.className = 'px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-semibold transition-all';
-        btnTech.className = 'px-2 py-1 rounded text-slate-400 hover:text-white transition-all';
+        btnEdu.className = 'px-2.5 py-1 rounded bg-panel text-telemetry border border-slate-600 transition-colors';
+        btnTech.className = 'px-2.5 py-1 rounded text-steel hover:text-telemetry transition-colors';
         badge.textContent = 'DIVULGATIVO';
         document.querySelectorAll('.edu-only').forEach(el => el.classList.remove('hidden'));
       }
@@ -1966,11 +1871,11 @@
       const left = document.getElementById('left-hud-panel');
       const right = document.getElementById('right-hud-panel');
       if (state.hudCollapsed) {
-        left.classList.add('lg:opacity-0', 'lg:pointer-events-none', 'lg:-translate-x-8');
-        right.classList.add('lg:opacity-0', 'lg:pointer-events-none', 'lg:translate-x-8');
+        left.classList.add('lg:opacity-0', 'lg:pointer-events-none', 'lg:-translate-x-6');
+        right.classList.add('lg:opacity-0', 'lg:pointer-events-none', 'lg:translate-x-6');
       } else {
-        left.classList.remove('lg:opacity-0', 'lg:pointer-events-none', 'lg:-translate-x-8');
-        right.classList.remove('lg:opacity-0', 'lg:pointer-events-none', 'lg:translate-x-8');
+        left.classList.remove('lg:opacity-0', 'lg:pointer-events-none', 'lg:-translate-x-6');
+        right.classList.remove('lg:opacity-0', 'lg:pointer-events-none', 'lg:translate-x-6');
       }
     }
 
@@ -1997,23 +1902,23 @@
       const icon = document.getElementById('sim-play-icon');
       const text = document.getElementById('sim-play-text');
       if (state.isSimulating) {
-        btn.className = 'px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/60 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all';
+        btn.className = 'btn-control px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 text-amber-400 border-amber-500/40';
         icon.textContent = '⏸';
-        text.textContent = 'PAUSAR';
+        text.textContent = 'Pausar';
       } else {
-        btn.className = 'px-2.5 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/60 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all';
+        btn.className = 'btn-control px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 text-emerald-400 border-emerald-500/40';
         icon.textContent = '▶';
-        text.textContent = 'SIMULAR ÓRBITA';
+        text.textContent = 'Simular Ciclo';
       }
     }
 
     function setSimSpeed(speed) {
       state.simSpeed = speed;
-      [200, 3000, 18000].forEach(s => {
+      [1, 100, 2500, 15000].forEach(s => {
         const btn = document.getElementById(`speed-${s}`);
         btn.className = s === speed
-          ? 'px-1.5 py-0.5 rounded bg-cyan-500/25 text-cyan-200 border border-cyan-400/50'
-          : 'px-1.5 py-0.5 rounded text-slate-400 hover:text-white';
+          ? 'px-1.5 py-0.5 rounded bg-panel text-telemetry border border-slate-600'
+          : 'px-1.5 py-0.5 rounded text-steel hover:text-telemetry';
       });
     }
 
@@ -2023,19 +1928,19 @@
     function addCurrentSiteToCompare() {
       const current = state.selectedSite;
       if (state.compareList.some(s => s.name === current.name)) {
-        showToast(`"${current.name}" YA ESTÁ EN COMPARATIVA`);
+        showToast(`"${current.name}" ya está en la tabla comparativa`);
         return;
       }
       if (state.compareList.length >= 3) state.compareList.shift();
       state.compareList.push({ ...current });
       document.getElementById('compare-count').textContent = state.compareList.length;
       renderSitesList();
-      showToast(`AÑADIDO: ${current.name.toUpperCase()} (${state.compareList.length}/3)`);
+      showToast(`Añadido a comparativa: ${current.name} (${state.compareList.length}/3)`);
     }
 
     function removeFromCompare(idx) {
       if (state.compareList.length <= 1) {
-        showToast('MÍNIMO 1 SITIO REQUERIDO');
+        showToast('Se requiere al menos 1 sitio para comparar');
         return;
       }
       state.compareList.splice(idx, 1);
@@ -2066,45 +1971,45 @@
         const s = state.compareList[i];
         if (s) {
           th.innerHTML = `
-            <div class="flex items-center justify-between gap-2 text-white font-bold">
+            <div class="flex items-center justify-between gap-2 text-telemetry font-semibold">
               <span>${s.name}</span>
-              <button onclick="removeFromCompare(${i})" class="text-rose-400 hover:text-rose-300 text-[10px] px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-500/40">✕</button>
+              <button onclick="removeFromCompare(${i})" class="text-steel hover:text-red-400 text-[10px] px-1.5 py-0.5 rounded bg-obsidian border border-borderline">✕</button>
             </div>
-            <div class="text-[10px] font-normal text-cyan-300/70 mt-0.5">${s.program}</div>
+            <div class="text-[10px] font-normal text-steel mt-0.5">${s.program}</div>
           `;
         } else {
-          th.innerHTML = '<span class="text-slate-600">SLOT DISPONIBLE</span>';
+          th.innerHTML = '<span class="text-slate-600">Vacío</span>';
         }
       });
 
       const rows = [
-        { label: 'COORDENADAS', fn: (s) => `${Math.abs(s.lat).toFixed(2)}°${s.lat >= 0 ? 'N' : 'S'}, ${Math.abs(s.lon).toFixed(2)}°${s.lon >= 0 ? 'E' : 'W'}` },
+        { label: 'Coordenadas', fn: (s) => `<span class="font-mono tabular-nums">${Math.abs(s.lat).toFixed(2)}°${s.lat >= 0 ? 'N' : 'S'}, ${Math.abs(s.lon).toFixed(2)}°${s.lon >= 0 ? 'E' : 'W'}</span>` },
         {
-          label: 'ÍNDICE VIABILIDAD',
+          label: 'Índice Viabilidad',
           fn: (s, t) => t.score >= 75
-            ? `<span class="text-emerald-300 font-bold">● ÓPTIMO (${t.score}/100)</span>`
-            : (t.score >= 45 ? `<span class="text-amber-300 font-bold">▲ RESTRINGIDO (${t.score}/100)</span>` : `<span class="text-rose-400 font-bold">✖ CRÍTICO (${t.score}/100)</span>`)
+            ? `<span class="font-mono text-emerald-400 font-semibold tabular-nums">Óptimo (${t.score}/100)</span>`
+            : (t.score >= 45 ? `<span class="font-mono text-amber-400 font-semibold tabular-nums">Restringido (${t.score}/100)</span>` : `<span class="font-mono text-red-400 font-semibold tabular-nums">Crítico (${t.score}/100)</span>`)
         },
-        { label: 'ELEVACIÓN SOLAR', fn: (s, t) => `<span class="${t.isDaylight ? 'text-amber-300' : 'text-slate-500'} font-bold">${t.sunAlt >= 0 ? '+' : ''}${t.sunAlt.toFixed(1)}°</span>` },
-        { label: 'IRRADIANCIA EFECT.', fn: (s, t) => `${t.effectiveIrradiance} W/m²` },
-        { label: 'VENTANA LUZ SOLAR', fn: (s, t) => `${t.sunlightDurationDays.toFixed(1)} días terr.` },
+        { label: 'Elevación Solar', fn: (s, t) => `<span class="font-mono tabular-nums ${t.isDaylight ? 'text-amber-400 font-semibold' : 'text-steel'}">${t.sunAlt >= 0 ? '+' : ''}${t.sunAlt.toFixed(1)}°</span>` },
+        { label: 'Irradiancia Efect.', fn: (s, t) => `<span class="font-mono tabular-nums">${t.effectiveIrradiance} W/m²</span>` },
+        { label: 'Ventana Luz Continua', fn: (s, t) => `<span class="font-mono tabular-nums">${t.sunlightDurationDays.toFixed(1)} días terr.</span>` },
         {
-          label: 'ENLACE TIERRA (DTE)',
+          label: 'Enlace Tierra (DTE)',
           fn: (s, t) => t.isEarthVisible
-            ? `<span class="text-cyan-300 font-bold">+${t.earthAlt.toFixed(1)}° (DIRECTO)</span>`
-            : `<span class="text-rose-400">${t.earthAlt.toFixed(1)}° (RELÉ L2)</span>`
+            ? `<span class="font-mono text-sky-400 font-semibold tabular-nums">+${t.earthAlt.toFixed(1)}° (Directo)</span>`
+            : `<span class="font-mono text-red-400 tabular-nums">${t.earthAlt.toFixed(1)}° (Relé L2)</span>`
         },
-        { label: 'PENDIENTE / ROCAS', fn: (s) => `${s.slope.toFixed(1)}° (${s.boulders})` },
-        { label: 'POTENCIAL HIELO', fn: (s) => s.ice }
+        { label: 'Pendiente / Rocas', fn: (s) => `<span class="font-mono tabular-nums">${s.slope.toFixed(1)}°</span> (${s.boulders})` },
+        { label: 'Potencial Hielo PSR', fn: (s) => s.ice }
       ];
 
       document.getElementById('compare-table-body').innerHTML = rows.map(r => `
-        <tr class="hover:bg-cyan-950/20">
-          <td class="py-2 px-3 text-cyan-300/80 font-semibold">${r.label}</td>
+        <tr class="hover:bg-panel/40">
+          <td class="py-2.5 px-3 text-steel font-medium">${r.label}</td>
           ${cols.map(i => {
             const s = state.compareList[i];
-            if (!s) return '<td class="py-2 px-3 text-slate-600">—</td>';
-            return `<td class="py-2 px-3 text-slate-100">${r.fn(s, telems[i])}</td>`;
+            if (!s) return '<td class="py-2.5 px-3 text-slate-600">—</td>';
+            return `<td class="py-2.5 px-3 text-telemetry">${r.fn(s, telems[i])}</td>`;
           }).join('')}
         </tr>
       `).join('');
@@ -2113,11 +2018,11 @@
     function showToast(msg) {
       const box = document.getElementById('toast-box');
       document.getElementById('toast-message').textContent = msg;
-      box.classList.remove('-translate-y-12', 'opacity-0');
+      box.classList.remove('-translate-y-10', 'opacity-0');
       clearTimeout(window._toastTimer);
       window._toastTimer = setTimeout(() => {
-        box.classList.add('-translate-y-12', 'opacity-0');
-      }, 2600);
+        box.classList.add('-translate-y-10', 'opacity-0');
+      }, 2400);
     }
 
     // =========================================================================
@@ -2141,26 +2046,11 @@
       const dtSeconds = (now - state.lastFrameTime) / 1000;
       state.lastFrameTime = now;
 
-      // Smooth camera interpolation
+      // Smooth damped orbital camera
       camYaw += (targetYaw - camYaw) * 0.12;
       camPitch += (targetPitch - camPitch) * 0.12;
       camDist += (targetDist - camDist) * 0.12;
       updateCameraPosition();
-
-      // Sci-Fi Holographic Animations
-      const t = now * 0.001;
-      if (outerRing1) outerRing1.rotation.y = t * 0.14;
-      if (outerRing2) outerRing2.rotation.y = -t * 0.22;
-      if (scanTorus) {
-        const sweep = Math.sin(t * 0.9);
-        scanTorus.position.y = sweep * (GLOBE_RADIUS * 0.92);
-        const rScale = Math.sqrt(Math.max(0.05, 1 - sweep * sweep * 0.85));
-        scanTorus.scale.set(rScale, 1, rScale);
-      }
-      if (customPinGroup) {
-        const pulse = 1 + 0.22 * Math.sin(t * 5);
-        customPinGroup.children[0].scale.set(pulse, pulse, 1);
-      }
 
       if (state.isSimulating) {
         state.simDate = new Date(state.simDate.getTime() + dtSeconds * state.simSpeed * 1000);
@@ -2199,7 +2089,7 @@
       window.addEventListener('mousemove', (e) => { if (scrubbing) scrubTo(e.clientX); });
       window.addEventListener('mouseup', () => { scrubbing = false; });
 
-      // Mini 2D Radar Click to Set Coordinates
+      // Mini 2D Map Click
       const radarCanvas = document.getElementById('canvas-radar-2d');
       radarCanvas.addEventListener('click', (e) => {
         if (state.radarProj !== 'global') return;
