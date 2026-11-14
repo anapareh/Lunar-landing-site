@@ -103,6 +103,16 @@ function valueAt(t: number[], values: number[], tMs: number): number {
   return values[k] + ((values[k + 1] - values[k]) * (tMs - t[k])) / (t[k + 1] - t[k]);
 }
 
+/** Interpola un acimut por el camino más corto (sin saltar de 359° a 0°). Resultado en [0, 360). */
+export function azimuthAt(t: number[], azimuths: number[], tMs: number): number {
+  const k = locate(t, tMs);
+  if (k === t.length - 1) return azimuths[k];
+  const a0 = azimuths[k];
+  const d = ((((azimuths[k + 1] - a0) % 360) + 540) % 360) - 180;
+  const v = a0 + (d * (tMs - t[k])) / (t[k + 1] - t[k]);
+  return ((v % 360) + 360) % 360;
+}
+
 /** Cuenta atrás hasta el ocaso o el orto desde `fromIso`. */
 export function countdown(samples: HorizonSample[], fromIso: string, opts: VisibilityOptions = {}): Countdown {
   const t = times(samples);
@@ -140,6 +150,7 @@ export function bodyMetrics(samples: HorizonSample[], at: string, opts: Visibili
   const c = countdown(samples, at, opts);
   return {
     elevationNowDeg: valueAt(t, samples.map((s) => s.elevation_deg), atMs),
+    azimuthNowDeg: azimuthAt(t, samples.map((s) => s.azimuth_deg), atMs),
     clearanceNowDeg: valueAt(t, samples.map((s) => s.clearance_deg), atMs),
     visibleFractionNow: valueAt(t, samples.map((s) => s.visible_fraction), atMs),
     visibleNow: c.visibleNow,

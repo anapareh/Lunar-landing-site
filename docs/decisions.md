@@ -20,6 +20,10 @@ decisiones con fecha y motivo. Plan completo acordado: ver README y `architectur
 | D-011 | 2026-11-14 | Mapa principal = **globo lunar 3D** (three.js, carga diferida) iluminado desde la dirección del Sol, con marcadores de Sol/Tierra y selección por clic. Sustituye al mapa 2D estático de D-009 como vista principal | Más visual (objetivo 5) y sirve también para elegir coordenadas |
 | D-012 | 2026-11-14 | Textura del globo: `lroc_color_2k.jpg` del CGI Moon Kit (NASA SVS, mosaico LROC WAC de ASU), con crédito visible. Solo visual: los cálculos no la usan | La propia fuente avisa de que está "optimizada para la estética, no para ciencia" |
 | D-013 | 2026-11-14 | La gráfica de elevación amplía el eje vertical cuando todo ocurre cerca del horizonte, y lo indica | En el polo sur el Sol se mueve en pocos grados; con −90..90 la gráfica es una línea plana |
+| D-014 | 2026-11-14 | Interfaz con la **estética HUD de `web/estetica.html`** (Tailwind v4, fuentes empaquetadas, solo tema oscuro), copiando **solo el aspecto**: sin índice de misión, irradiancia, temperatura, geología, "bonus" polar ni sitios sin verificar | Decisión de la usuaria; cada número mostrado sale de `lib/` y tiene tests |
+| D-015 | 2026-11-14 | Globo holográfico: Sol y Tierra como esferas en su dirección real (no a escala), rayo solar si el Sol es visible desde el punto y enlace DTE cian/rojo según la visibilidad calculada. Retícula, borde, estrellas y anillos son decorativos | Representación de la referencia, alimentada con datos propios |
+| D-016 | 2026-11-14 | **Simulación** del paso del tiempo (1 h/s, 6 h/s, 1 d/s) moviendo un cursor dentro de la ventana; franja del día lunar arrastrable; **radar del terminador** 2D (global / polo sur) con terminador geométrico | Objetivo 6 del reto; el radar es orientativo a escala global, las métricas usan el horizonte del punto |
+| D-017 | 2026-11-14 | Líneas de la gráfica en tonos validados (Sol `#c98500`, Tierra `#0fa3c2`); los neón de la referencia solo en decoración | Los neón fallan la banda de luminosidad del validador de paleta sobre el fondo void |
 
 ## Pendiente de medir / decidir durante el evento
 

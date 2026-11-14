@@ -1,0 +1,18 @@
+{
+  "_note": "Textos del modo DIVULGATIVO. Los mantiene la persona de contenido. No incluir cifras sin fuente: si hace falta una, añadir la fuente en 'sources' o marcarla como 'pendiente de verificar'.",
+  "sun": {
+    "title": "¿Por qué importa la elevación del Sol?",
+    "body": "Sin atmósfera, en la Luna no hay crepúsculo: o llega luz directa del Sol o no llega. Cuanto más alto está el Sol, más energía reciben los paneles horizontales. En el polo sur el Sol se mueve rozando el horizonte, así que una montaña lejana o el borde de un cráter pueden dejar el lugar a oscuras.",
+    "sources": []
+  },
+  "earth": {
+    "title": "¿Por qué importa ver la Tierra?",
+    "body": "Para hablar con la Tierra sin satélites intermedios, la antena tiene que 'ver' la Tierra por encima del horizonte. Desde la Luna, la Tierra casi no se mueve en el cielo, pero oscila un poco (libración). Cerca del borde de la cara visible, esa oscilación hace que la Tierra aparezca y desaparezca.",
+    "sources": []
+  },
+  "horizon": {
+    "title": "Horizonte geométrico y horizonte real",
+    "body": "El horizonte geométrico supone una Luna lisa y redonda. El horizonte real lo marcan montañas y cráteres: cuando haya perfiles de relieve LOLA para un sitio, se usarán en lugar del geométrico.",
+    "sources": []
+  }
+}

@@ -2,7 +2,8 @@
  * Elevación del Sol y la Tierra frente al tiempo (recharts), con el horizonte como referencia.
  * - Horizonte geométrico: línea en 0°.
  * - Horizonte con relieve: línea discontinua del horizonte en el acimut de cada cuerpo.
- * Colores por rol (CSS): --series-sun, --series-earth. Leyenda siempre visible y tabla accesible.
+ * - Eje vertical ampliado cuando todo ocurre cerca del horizonte (lib/chartScale.ts).
+ * Colores de serie validados (--color-series-sun / --color-series-earth). Leyenda y tabla accesibles.
  */
 import { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -17,6 +18,8 @@ export interface ElevationChartProps {
   profile: HorizonProfile | null;
   /** Fecha de referencia (ISO UTC): inicio de la ventana representada. */
   at: string;
+  /** Instante mostrado (ISO UTC), marcado con una línea vertical. */
+  cursor?: string | null;
 }
 
 interface Row {
@@ -52,16 +55,16 @@ function ChartTooltip({ active, label, payload }: TooltipProps) {
   if (!active || !payload?.length || typeof label !== "number") return null;
   const get = (k: string) => payload.find((p) => p.dataKey === k)?.value as number | undefined;
   return (
-    <div className="chart-tooltip">
-      <div className="tooltip-time">{formatUtc(label)}</div>
+    <div className="hud-box rounded px-2.5 py-1.5 text-xs font-mono shadow-[0_0_16px_rgba(0,240,255,0.25)]">
+      <div className="text-cyan-300/80 mb-1">{formatUtc(label)}</div>
       {SERIES.map((s) => {
         const v = get(s.key);
         const h = get(`${s.key}Horizon`);
         return v === undefined ? null : (
-          <div key={s.key} className="tooltip-row">
+          <div key={s.key} className="flex items-center gap-2">
             <span className={`key key-${s.key}`} aria-hidden="true" />
-            <strong>{formatDeg(v)}</strong>
-            <span className="tooltip-name">
+            <strong className="text-white">{formatDeg(v)}</strong>
+            <span className="text-slate-400">
               {s.name}
               {h !== undefined && ` · horizonte ${formatDeg(h)}`}
             </span>
@@ -72,7 +75,7 @@ function ChartTooltip({ active, label, payload }: TooltipProps) {
   );
 }
 
-export function ElevationChart({ series, profile, at }: ElevationChartProps) {
+export function ElevationChart({ series, profile, at, cursor }: ElevationChartProps) {
   const rows = useMemo<Row[]>(
     () =>
       series.sun.map((s, i) => {
@@ -93,38 +96,41 @@ export function ElevationChart({ series, profile, at }: ElevationChartProps) {
   const decimals = axis.step < 0.25 ? 1 : axis.step < 1 ? 2 : 0;
   const tickFormat = new Intl.NumberFormat("es-ES", { maximumFractionDigits: decimals });
   const tableRows = rows.filter((r) => (r.t - t0) % (6 * 3_600_000) === 0);
+  const cursorMs = cursor ? parseUtc(cursor) : null;
 
   return (
-    <figure className="card chart-card">
-      <figcaption className="card-head">
-        <h2 className="card-title">Elevación del Sol y la Tierra</h2>
-        <ul className="legend" aria-label="Leyenda">
+    <figure className="m-0">
+      <figcaption className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <div>
+          <h2 className="font-display text-xs font-bold tracking-wider text-cyan-300">ELEVACIÓN DEL SOL Y LA TIERRA</h2>
+          <p className="text-[11px] font-mono text-slate-400">
+            Un día lunar desde el {formatUtc(at)}
+            {axis.zoomed && (
+              <>
+                {" · "}
+                <strong className="text-amber-300">EJE AMPLIADO</strong> ({tickFormat.format(axis.domain[0])}° a{" "}
+                {tickFormat.format(axis.domain[1])}°): todo ocurre cerca del horizonte
+              </>
+            )}
+          </p>
+        </div>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-slate-300 list-none m-0 p-0" aria-label="Leyenda">
           {SERIES.map((s) => (
-            <li key={s.key}>
+            <li key={s.key} className="flex items-center gap-1.5">
               <span className={`key key-${s.key}`} aria-hidden="true" /> {s.name}
             </li>
           ))}
-          <li>
+          <li className="flex items-center gap-1.5">
             <span className={`key key-horizon${profile ? " key-dashed" : ""}`} aria-hidden="true" />
             {profile ? "Horizonte en el acimut de cada cuerpo" : "Horizonte (0°)"}
           </li>
         </ul>
       </figcaption>
-      <p className="chart-caption">
-        Un día lunar desde el {formatUtc(at)}
-        {axis.zoomed && (
-          <>
-            {" · "}
-            <strong>Eje vertical ampliado</strong> ({tickFormat.format(axis.domain[0])}° a {tickFormat.format(axis.domain[1])}°): el Sol y
-            la Tierra se mueven cerca del horizonte
-          </>
-        )}
-      </p>
 
-      <div className="chart-box">
+      <div className="h-56 sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
-            <CartesianGrid className="chart-grid" vertical={false} />
+            <CartesianGrid vertical={false} />
             <XAxis
               dataKey="t"
               type="number"
@@ -141,18 +147,23 @@ export function ElevationChart({ series, profile, at }: ElevationChartProps) {
               allowDataOverflow
               tickFormatter={(v: number) => `${tickFormat.format(v)}°`}
               className="chart-axis"
-              width={48}
+              width={52}
               tickLine={false}
               axisLine={false}
             />
-            {!profile && <ReferenceLine y={0} className="ref-horizon" ifOverflow="extendDomain" />}
-            <Tooltip content={(p) => <ChartTooltip active={p.active} label={p.label} payload={p.payload} />} cursor={{ className: "chart-cursor" }} isAnimationActive={false} />
+            {!profile && <ReferenceLine y={0} ifOverflow="extendDomain" />}
+            {cursorMs !== null && cursorMs >= t0 && cursorMs <= t1 && <ReferenceLine x={cursorMs} className="ref-cursor" />}
+            <Tooltip
+              content={(p) => <ChartTooltip active={p.active} label={p.label} payload={p.payload} />}
+              cursor={{ className: "chart-cursor" }}
+              isAnimationActive={false}
+            />
             {profile &&
               SERIES.map((s) => (
                 <Line
                   key={`${s.key}Horizon`}
                   dataKey={`${s.key}Horizon`}
-                  className={`${s.className} line-horizon`}
+                  className={s.className}
                   stroke="currentColor"
                   strokeWidth={1}
                   strokeDasharray="4 3"
@@ -180,23 +191,23 @@ export function ElevationChart({ series, profile, at }: ElevationChartProps) {
         </ResponsiveContainer>
       </div>
 
-      <details className="table-view">
-        <summary>Ver los datos en una tabla (cada 6 h)</summary>
-        <div className="table-scroll">
-          <table>
+      <details className="mt-1 text-xs font-mono">
+        <summary className="cursor-pointer text-cyan-300/80 hover:text-cyan-200">Ver los datos en una tabla (cada 6 h)</summary>
+        <div className="max-h-48 overflow-auto mt-1">
+          <table className="w-full border-collapse tabular-nums">
             <thead>
-              <tr>
-                <th scope="col">Fecha (UTC)</th>
-                <th scope="col">Sol</th>
-                <th scope="col">Tierra</th>
+              <tr className="text-cyan-300 border-b border-cyan-500/30">
+                <th scope="col" className="text-left py-1 px-2">Fecha (UTC)</th>
+                <th scope="col" className="text-left py-1 px-2">Sol</th>
+                <th scope="col" className="text-left py-1 px-2">Tierra</th>
               </tr>
             </thead>
             <tbody>
               {tableRows.map((r) => (
-                <tr key={r.t}>
-                  <td>{formatUtc(r.t)}</td>
-                  <td>{formatDeg(r.sun)}</td>
-                  <td>{formatDeg(r.earth)}</td>
+                <tr key={r.t} className="border-b border-slate-800/80 text-slate-200">
+                  <td className="py-1 px-2">{formatUtc(r.t)}</td>
+                  <td className="py-1 px-2">{formatDeg(r.sun)}</td>
+                  <td className="py-1 px-2">{formatDeg(r.earth)}</td>
                 </tr>
               ))}
             </tbody>

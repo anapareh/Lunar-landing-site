@@ -1,11 +1,17 @@
 /**
- * Globo lunar 3D (three.js).
- * - Iluminado desde la dirección del Sol en la fecha elegida: se ve el terminador día/noche.
- * - Marcadores de dirección del Sol y de la Tierra (no a escala) y del punto seleccionado.
- * - Arrastrar para girar, rueda para acercar, clic para elegir un punto. Vistas predefinidas.
- * Textura: CGI Moon Kit (NASA SVS, mosaico LROC WAC). Solo visual: "optimizada para la estética,
- * no para ciencia"; los cálculos no la usan.
- * Se carga de forma diferida (React.lazy) porque three.js es pesado.
+ * Globo lunar holográfico (three.js), estética de web/estetica.html con datos propios.
+ *
+ * Datos (de nuestra efeméride y métricas):
+ * - Iluminación desde la dirección del Sol en el instante mostrado → terminador día/noche.
+ * - Sol (esfera amarilla) y Tierra (esfera cian con jaula) en su dirección real. NO a escala.
+ * - Rayo solar discontinuo desde el punto (solo si el Sol es visible allí).
+ * - Enlace DTE punto → Tierra: cian si la Tierra es visible desde el punto, rojo si no.
+ * - Pin esmeralda en el punto seleccionado.
+ * Decoración (no representa datos): retícula, borde Fresnel, estrellas aleatorias, anillos y barrido.
+ *
+ * Arrastrar para girar, rueda para acercar, clic para elegir un punto, flechas con el foco.
+ * Textura: CGI Moon Kit (NASA SVS, mosaico LROC WAC). Solo visual.
+ * Con prefers-reduced-motion la decoración queda quieta. Se carga de forma diferida (React.lazy).
  */
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -18,21 +24,42 @@ export interface LunarGlobeProps {
   /** Vector centro Luna → Tierra en el marco lunar fijo. */
   earthDir: Vector3 | null;
   site: { lat: number; lon: number } | null;
+  /** ¿El Sol es visible desde el punto? (métricas) */
+  sunVisible?: boolean | null;
+  /** ¿La Tierra es visible desde el punto? (métricas) */
+  earthVisible?: boolean | null;
   onPick?: (c: { lat: number; lon: number }) => void;
+  /** Petición de vista; `n` cambia en cada petición para poder repetir la misma vista. */
+  viewRequest?: { view: GlobeView; n: number };
 }
 
-type View = "site" | "southPole" | "nearside";
+export type GlobeView = "site" | "southPole" | "nearside";
 
-// Colores pensados para el fondo oscuro del espacio (pasos "dark" de la paleta validada).
-const COLOR_SUN = 0xd95926;
-const COLOR_EARTH = 0x3987e5;
-const COLOR_SITE = 0xf0efec;
-const SPACE = 0x0d0d0d;
+const SPACE = 0x03050a;
+const CYAN = 0x00f0ff;
+const AMBER = 0xffaa00;
+const RED = 0xff3355;
+const EMERALD = 0x00ff9d;
+const SUN_COLOR = 0xffcc33;
 
 const TEXTURE_URL = `${import.meta.env.BASE_URL}textures/moon/lroc_color_2k.jpg`;
-/** Distancia de la cámara (radios lunares) y altura de la punta de los marcadores. */
-const CAMERA_Z = 4.8;
-const MARKER_TIP = 1.26;
+/** Cámara (radios lunares) y distancia a la que se dibujan el Sol y la Tierra (no a escala). */
+const CAMERA_Z = 7;
+const SUN_DIST = 2.3;
+const EARTH_DIST = 2.15;
+
+const toQuat = (q: number[]) => new THREE.Quaternion(q[0], q[1], q[2], q[3]);
+
+/**
+ * Vista del punto ligeramente oblicua (como la cámara de la referencia): el punto queda a un lado
+ * del centro y el Sol y la Tierra no se superponen con él cuando apuntan hacia la cámara.
+ */
+const OBLIQUE = new THREE.Quaternion()
+  .setFromAxisAngle(new THREE.Vector3(1, 0, 0), THREE.MathUtils.degToRad(12))
+  .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(-28)));
+const siteQuat = (lat: number, lon: number) => OBLIQUE.clone().multiply(toQuat(quatFacing(lat, lon)));
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 interface Scene {
   renderer: THREE.WebGLRenderer;
@@ -40,65 +67,88 @@ interface Scene {
   globe: THREE.Group;
   moon: THREE.Mesh;
   sunLight: THREE.DirectionalLight;
-  sunMarker: THREE.Group;
-  earthMarker: THREE.Group;
-  siteMarker: THREE.Group;
+  sun: THREE.Mesh;
+  earth: THREE.Mesh;
+  sunRay: THREE.Line;
+  dteLine: THREE.Line;
+  pin: THREE.Group;
   target: THREE.Quaternion | null;
   dirty: boolean;
 }
 
-/** Flecha radial desde la superficie con una esfera en la punta. */
-function directionMarker(color: number): THREE.Group {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 8), mat);
-  shaft.position.y = 1.02 + 0.11;
-  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.04, 24, 16), mat);
-  tip.position.y = MARKER_TIP;
-  g.add(shaft, tip);
-  g.visible = false;
-  return g;
+function fresnelSphere(): THREE.Mesh {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { glowColor: { value: new THREE.Color(CYAN) } },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPositionNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPositionNormal = normalize((modelViewMatrix * vec4(position, 1.0)).xyz);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 glowColor;
+      varying vec3 vNormal;
+      varying vec3 vPositionNormal;
+      void main() {
+        // 0 en el centro del disco, 1 en el contorno: solo brilla el borde
+        float facing = abs(dot(vNormal, -vPositionNormal));
+        float intensity = pow(1.0 - facing, 3.0);
+        gl_FragColor = vec4(glowColor, clamp(intensity * 0.9, 0.0, 0.75));
+      }`,
+    side: THREE.FrontSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+  });
+  return new THREE.Mesh(new THREE.SphereGeometry(1.035, 64, 64), mat);
 }
 
-/** Orienta un marcador radial (construido sobre +Y) hacia una dirección local del globo. */
-function pointMarker(marker: THREE.Object3D, dir: THREE.Vector3) {
-  marker.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-  marker.visible = true;
-}
-
-function graticule(): THREE.LineSegments {
-  const pts: number[] = [];
-  const r = 1.002;
-  const push = (a: number[], b: number[]) => pts.push(...a, ...b);
-  for (let lat = -60; lat <= 60; lat += 30) {
-    for (let lon = -180; lon < 180; lon += 3) push(latLonToThree(lat, lon, r), latLonToThree(lat, lon + 3, r));
-  }
-  for (let lon = -180; lon < 180; lon += 30) {
-    for (let lat = -90; lat < 90; lat += 3) push(latLonToThree(lat, lon, r), latLonToThree(lat + 3, lon, r));
+/** Campo de estrellas decorativo (posiciones aleatorias, no es un catálogo). */
+function starfield(): THREE.Points {
+  const n = 1600;
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n * 3; i += 3) {
+    const r = 28 + Math.random() * 36;
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    pos[i] = r * Math.sin(ph) * Math.cos(th);
+    pos[i + 1] = r * Math.cos(ph);
+    pos[i + 2] = r * Math.sin(ph) * Math.sin(th);
   }
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-  return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 }));
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  return new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.13, transparent: true, opacity: 0.85 }));
 }
 
-function siteMarkerObject(): THREE.Group {
+function lineBetween(color: number, dashed: boolean): THREE.Line {
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+  const mat = dashed
+    ? new THREE.LineDashedMaterial({ color, dashSize: 0.07, gapSize: 0.04, transparent: true, opacity: 0.75 })
+    : new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 });
+  const l = new THREE.Line(geo, mat);
+  l.visible = false;
+  return l;
+}
+
+function sitePin(): THREE.Group {
   const g = new THREE.Group();
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.016, 16, 12), new THREE.MeshBasicMaterial({ color: COLOR_SITE }));
-  dot.position.y = 1.0;
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.03, 0.04, 40),
-    new THREE.MeshBasicMaterial({ color: COLOR_SITE, side: THREE.DoubleSide }),
+  const ringGeo = new THREE.RingGeometry(0.024, 0.048, 32);
+  ringGeo.rotateX(-Math.PI / 2);
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: EMERALD, side: THREE.DoubleSide }));
+  ring.position.y = 1.006;
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.004, 0.012, 0.22, 12),
+    new THREE.MeshBasicMaterial({ color: EMERALD, transparent: true, opacity: 0.85 }),
   );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 1.004;
-  g.add(dot, ring);
+  beam.position.y = 1.11;
+  g.add(ring, beam);
   g.visible = false;
   return g;
 }
 
-const toQuat = (q: number[]) => new THREE.Quaternion(q[0], q[1], q[2], q[3]);
-
-export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlobeProps) {
+export default function LunarGlobe({ sunDir, earthDir, site, sunVisible, earthVisible, onPick, viewRequest }: LunarGlobeProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<Scene | null>(null);
   const labelsRef = useRef<{ sun: HTMLSpanElement | null; earth: HTMLSpanElement | null }>({ sun: null, earth: null });
@@ -107,7 +157,6 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
   const siteRef = useRef(site);
   siteRef.current = site;
   const [webglError, setWebglError] = useState<string | null>(null);
-  const [view, setView] = useState<View>("site");
 
   // ---- Crear la escena una vez ----
   useEffect(() => {
@@ -115,26 +164,29 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
     if (!mount) return;
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     } catch {
       setWebglError("Este navegador no permite WebGL: no se puede mostrar el globo 3D.");
       return;
     }
+    const still = prefersReducedMotion();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(SPACE);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
     renderer.domElement.tabIndex = 0;
+    renderer.domElement.style.display = "block";
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
     camera.position.set(0, 0, CAMERA_Z);
+    scene.add(starfield());
 
     const globe = new THREE.Group();
     scene.add(globe);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.07)); // la cara nocturna se intuye
+    globe.add(new THREE.AmbientLight(0x16243d, 0.6)); // la cara nocturna se intuye, en tono "holograma"
 
-    const material = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 1, metalness: 0 });
+    const material = new THREE.MeshStandardMaterial({ color: 0x8a93a3, roughness: 0.9, metalness: 0.05 });
     const moon = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 64), material);
     globe.add(moon);
     new THREE.TextureLoader().load(TEXTURE_URL, (tex) => {
@@ -146,27 +198,60 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
       s.dirty = true;
     });
 
-    // La luz cuelga del globo: su dirección está fija en el marco lunar.
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2.6);
+    // Retícula holográfica (decorativa)
+    globe.add(
+      new THREE.Mesh(
+        new THREE.SphereGeometry(1.006, 36, 18),
+        new THREE.MeshBasicMaterial({ color: CYAN, wireframe: true, transparent: true, opacity: 0.07 }),
+      ),
+    );
+    globe.add(fresnelSphere());
+
+    // Anillos y barrido (decorativos; no son órbitas reales)
+    const ring1Geo = new THREE.RingGeometry(1.32, 1.335, 128);
+    ring1Geo.rotateX(Math.PI / 2);
+    const ring1 = new THREE.Mesh(ring1Geo, new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.28, side: THREE.DoubleSide }));
+    ring1.rotation.z = 0.12;
+    const ring2Geo = new THREE.RingGeometry(1.46, 1.47, 128);
+    ring2Geo.rotateX(Math.PI / 2.3);
+    const ring2 = new THREE.Mesh(ring2Geo, new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.2, side: THREE.DoubleSide }));
+    const scanGeo = new THREE.TorusGeometry(1.015, 0.0035, 8, 128);
+    scanGeo.rotateX(Math.PI / 2);
+    const scan = new THREE.Mesh(scanGeo, new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.5 }));
+    scene.add(ring1, ring2);
+    globe.add(scan);
+
+    // Luz solar (cuelga del globo: su dirección está fija en el marco lunar)
+    const sunLight = new THREE.DirectionalLight(0xfffbeb, 2.6);
     sunLight.target = moon;
     globe.add(sunLight);
 
-    globe.add(graticule());
-    const sunMarker = directionMarker(COLOR_SUN);
-    const earthMarker = directionMarker(COLOR_EARTH);
-    const siteMarker = siteMarkerObject();
-    globe.add(sunMarker, earthMarker, siteMarker);
+    // Sol y Tierra (no a escala)
+    const sun = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 24), new THREE.MeshBasicMaterial({ color: SUN_COLOR }));
+    sun.visible = false;
+    const earth = new THREE.Mesh(
+      new THREE.SphereGeometry(0.095, 24, 24),
+      new THREE.MeshStandardMaterial({ color: CYAN, emissive: 0x0284c7, emissiveIntensity: 0.8 }),
+    );
+    earth.add(new THREE.Mesh(new THREE.SphereGeometry(0.108, 16, 12), new THREE.MeshBasicMaterial({ color: CYAN, wireframe: true, transparent: true, opacity: 0.35 })));
+    earth.visible = false;
+    const sunRay = lineBetween(AMBER, true);
+    const dteLine = lineBetween(CYAN, false);
+    const pin = sitePin();
+    globe.add(sun, earth, sunRay, dteLine, pin);
 
-    const s: Scene = { renderer, camera, globe, moon, sunLight, sunMarker, earthMarker, siteMarker, target: null, dirty: true };
+    const s: Scene = { renderer, camera, globe, moon, sunLight, sun, earth, sunRay, dteLine, pin, target: null, dirty: true };
     sceneRef.current = s;
     const initial = siteRef.current;
-    globe.quaternion.copy(toQuat(initial ? quatFacing(initial.lat, initial.lon) : QUAT_NEARSIDE));
+    globe.quaternion.copy(initial ? siteQuat(initial.lat, initial.lon) : toQuat(QUAT_NEARSIDE));
 
     // Tamaño
     const resize = () => {
       const w = mount.clientWidth;
       const h = mount.clientHeight;
       renderer.setSize(w, h, false);
+      renderer.domElement.style.width = "100%";
+      renderer.domElement.style.height = "100%";
       camera.aspect = w / Math.max(h, 1);
       camera.updateProjectionMatrix();
       s.dirty = true;
@@ -212,7 +297,7 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      camera.position.z = Math.min(9, Math.max(2.2, camera.position.z * (e.deltaY > 0 ? 1.1 : 1 / 1.1)));
+      camera.position.z = Math.min(14, Math.max(2.4, camera.position.z * (e.deltaY > 0 ? 1.1 : 1 / 1.1)));
       s.dirty = true;
     };
     const onKey = (e: KeyboardEvent) => {
@@ -229,24 +314,38 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("keydown", onKey);
 
-    // Bucle: solo renderiza si algo ha cambiado o hay una transición en curso.
-    let raf = 0;
+    // Etiquetas HTML proyectadas sobre el Sol y la Tierra
     const tmp = new THREE.Vector3();
-    const placeLabel = (label: HTMLSpanElement | null, marker: THREE.Group, dyPx: number) => {
+    const placeLabel = (label: HTMLSpanElement | null, obj: THREE.Object3D) => {
       if (!label) return;
-      if (!marker.visible) {
+      if (!obj.visible) {
         label.hidden = true;
         return;
       }
-      tmp.set(0, MARKER_TIP, 0).applyQuaternion(marker.quaternion).applyQuaternion(globe.quaternion);
+      obj.getWorldPosition(tmp);
       const behind = tmp.z < 0 && Math.hypot(tmp.x, tmp.y) < 1;
       tmp.project(camera);
       label.hidden = false;
       label.style.opacity = behind ? "0.35" : "1";
-      label.style.transform = `translate(${((tmp.x + 1) / 2) * mount.clientWidth}px, ${((1 - tmp.y) / 2) * mount.clientHeight}px) translate(-50%, calc(-50% + ${dyPx}px))`;
+      label.style.transform = `translate(${((tmp.x + 1) / 2) * mount.clientWidth}px, ${((1 - tmp.y) / 2) * mount.clientHeight}px) translate(-50%, calc(-100% - 10px))`;
     };
-    const loop = () => {
+
+    // Bucle: animación decorativa continua salvo movimiento reducido.
+    let raf = 0;
+    const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
+      const t = now * 0.001;
+      if (!still) {
+        ring1.rotation.y = t * 0.14;
+        ring2.rotation.y = -t * 0.22;
+        const sweep = Math.sin(t * 0.9);
+        scan.position.y = sweep * 0.92;
+        const rs = Math.sqrt(Math.max(0.05, 1 - sweep * sweep * 0.85));
+        scan.scale.set(rs, 1, rs);
+        const pulse = 1 + 0.22 * Math.sin(t * 5);
+        pin.children[0].scale.set(pulse, 1, pulse);
+        s.dirty = true;
+      }
       if (s.target) {
         globe.quaternion.slerp(s.target, 0.15);
         if (globe.quaternion.angleTo(s.target) < 1e-3) {
@@ -258,10 +357,10 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
       if (!s.dirty) return;
       s.dirty = false;
       renderer.render(scene, camera);
-      placeLabel(labelsRef.current.sun, sunMarker, -16);
-      placeLabel(labelsRef.current.earth, earthMarker, 16);
+      placeLabel(labelsRef.current.sun, sun);
+      placeLabel(labelsRef.current.earth, earth);
     };
-    loop();
+    raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -272,7 +371,7 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("keydown", onKey);
       scene.traverse((o) => {
-        if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
+        if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points) {
           o.geometry.dispose();
           const mats = Array.isArray(o.material) ? o.material : [o.material];
           mats.forEach((m: THREE.Material & { map?: THREE.Texture | null }) => {
@@ -287,79 +386,80 @@ export default function LunarGlobe({ sunDir, earthDir, site, onPick }: LunarGlob
     };
   }, []);
 
-  // ---- Sol, Tierra y punto ----
+  // ---- Sol, Tierra, punto y enlaces ----
   useEffect(() => {
     const s = sceneRef.current;
     if (!s) return;
+    const sitePos = site ? new THREE.Vector3(...latLonToThree(site.lat, site.lon)) : null;
+    if (sitePos) {
+      s.pin.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sitePos);
+      s.pin.visible = true;
+    } else s.pin.visible = false;
+
     if (sunDir) {
       const d = new THREE.Vector3(...bodyToThree(sunDir)).normalize();
       s.sunLight.position.copy(d.clone().multiplyScalar(10));
       s.sunLight.visible = true;
-      pointMarker(s.sunMarker, d);
+      s.sun.position.copy(d.clone().multiplyScalar(SUN_DIST));
+      s.sun.visible = true;
+      if (sitePos && sunVisible) {
+        s.sunRay.geometry.setFromPoints([sitePos.clone().multiplyScalar(1.02), s.sun.position.clone()]);
+        s.sunRay.computeLineDistances();
+        s.sunRay.visible = true;
+      } else s.sunRay.visible = false;
     } else {
       s.sunLight.visible = false;
-      s.sunMarker.visible = false;
+      s.sun.visible = false;
+      s.sunRay.visible = false;
     }
-    if (earthDir) pointMarker(s.earthMarker, new THREE.Vector3(...bodyToThree(earthDir)));
-    else s.earthMarker.visible = false;
-    if (site) pointMarker(s.siteMarker, new THREE.Vector3(...latLonToThree(site.lat, site.lon)));
-    else s.siteMarker.visible = false;
-    s.dirty = true;
-  }, [sunDir, earthDir, site]);
 
-  // ---- Vistas ----
-  function goTo(v: View) {
-    setView(v);
+    if (earthDir) {
+      const d = new THREE.Vector3(...bodyToThree(earthDir)).normalize();
+      s.earth.position.copy(d.multiplyScalar(EARTH_DIST));
+      s.earth.visible = true;
+      if (sitePos && earthVisible !== null && earthVisible !== undefined) {
+        s.dteLine.geometry.setFromPoints([sitePos.clone().multiplyScalar(1.03), s.earth.position.clone()]);
+        const m = s.dteLine.material as THREE.LineBasicMaterial;
+        m.color.setHex(earthVisible ? CYAN : RED);
+        m.opacity = earthVisible ? 0.9 : 0.45;
+        s.dteLine.visible = true;
+      } else s.dteLine.visible = false;
+    } else {
+      s.earth.visible = false;
+      s.dteLine.visible = false;
+    }
+    s.dirty = true;
+  }, [sunDir, earthDir, site, sunVisible, earthVisible]);
+
+  // ---- Vistas (las pide el HUD con un contador para poder repetir la misma vista) ----
+  useEffect(() => {
     const s = sceneRef.current;
-    if (!s) return;
-    const q = v === "southPole" ? QUAT_SOUTH_POLE : v === "nearside" ? QUAT_NEARSIDE : site ? quatFacing(site.lat, site.lon) : QUAT_NEARSIDE;
-    s.target = toQuat(q);
-  }
+    if (!s || !viewRequest) return;
+    const v = viewRequest.view;
+    const q = v === "southPole" ? toQuat(QUAT_SOUTH_POLE) : v === "nearside" ? toQuat(QUAT_NEARSIDE) : site ? siteQuat(site.lat, site.lon) : toQuat(QUAT_NEARSIDE);
+    s.target = q;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reacciona a nuevas peticiones
+  }, [viewRequest?.n]);
 
   const label = site ? `lat ${site.lat.toFixed(2)}°, lon ${site.lon.toFixed(2)}°` : "ninguno";
+  const labelClass = "globe-label px-1.5 py-0.5 rounded bg-void/85 border text-[10px] font-mono whitespace-nowrap";
 
+  if (webglError) {
+    return <p className="p-6 font-mono text-sm text-rose-300">{webglError}</p>;
+  }
   return (
-    <figure className="card globe-card">
-      <figcaption className="card-head">
-        <h2 className="card-title">Globo lunar</h2>
-        <div className="shortcuts" role="group" aria-label="Vista del globo">
-          {(
-            [
-              ["site", "Centrar en el punto"],
-              ["southPole", "Polo sur"],
-              ["nearside", "Cara visible"],
-            ] as [View, string][]
-          ).map(([v, text]) => (
-            <button key={v} type="button" className="ghost" aria-pressed={view === v} onClick={() => goTo(v)}>
-              {text}
-            </button>
-          ))}
-        </div>
-      </figcaption>
-
-      {webglError ? (
-        <p className="note">{webglError}</p>
-      ) : (
-        <div
-          className="globe-box"
-          ref={mountRef}
-          role="img"
-          aria-label={`Globo lunar iluminado desde la dirección del Sol. Punto seleccionado: ${label}. Arrastra para girar, rueda para acercar, clic para elegir un punto; con el foco en el globo, las flechas también lo giran.`}
-        >
-          <span className="globe-label" ref={(n) => { labelsRef.current.sun = n; }} hidden>Sol</span>
-          <span className="globe-label" ref={(n) => { labelsRef.current.earth = n; }} hidden>Tierra</span>
-        </div>
-      )}
-
-      <ul className="legend globe-legend" aria-label="Leyenda del globo">
-        <li><span className="key key-sun" aria-hidden="true" /> Dirección del Sol</li>
-        <li><span className="key key-earth" aria-hidden="true" /> Dirección de la Tierra</li>
-        <li><span className="dot-site" aria-hidden="true" /> Punto seleccionado (clic para cambiarlo)</li>
-      </ul>
-      <p className="note">
-        Marcadores no a escala. Textura: NASA's Scientific Visualization Studio (mosaico LROC WAC de ASU),
-        solo como referencia visual.
-      </p>
-    </figure>
+    <div
+      className="relative w-full h-full cursor-grab active:cursor-grabbing touch-none"
+      ref={mountRef}
+      role="img"
+      aria-label={`Globo lunar iluminado desde la dirección del Sol, con el Sol y la Tierra en su dirección (no a escala). Punto seleccionado: ${label}. Enlace con la Tierra: ${earthVisible ? "visible" : "sin línea de visión"}. Arrastra para girar, rueda para acercar, clic para elegir un punto; con el foco en el globo, las flechas también lo giran.`}
+    >
+      <span className={`${labelClass} border-amber-400/50 text-amber-200`} ref={(n) => { labelsRef.current.sun = n; }} hidden>
+        ☀ SOL
+      </span>
+      <span className={`${labelClass} border-cyan-400/50 text-cyan-200`} ref={(n) => { labelsRef.current.earth = n; }} hidden>
+        ◉ TIERRA
+      </span>
+    </div>
   );
 }

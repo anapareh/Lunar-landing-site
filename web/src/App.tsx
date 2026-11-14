@@ -1,21 +1,34 @@
 /**
- * Pantalla principal (primera versión): coordenadas libres + fecha → gráfica y métricas.
+ * Pantalla principal con estética HUD (referencia: web/estetica.html).
  *
- * Zonas: izquierda = sitios (de momento, coordenadas libres), centro = gráfica (el mapa irá aquí),
- * derecha = fecha y resumen de métricas. Ventana de cálculo: un día lunar desde la fecha elegida,
- * recortada a la cobertura de la efeméride.
- * Futuro: lista de sitios curados con su horizonte LOLA, mapa, comparación de escenarios, detalle.
+ * - Fondo: globo lunar holográfico a pantalla completa, con el Sol y la Tierra en su dirección.
+ * - Cabecera: marca, modo TÉCNICO/DIVULGATIVO, ocultar paneles.
+ * - Izquierda: objetivo (coordenadas libres; sitios curados más adelante).
+ * - Centro: objetivo activo, vistas, alerta de enlace con la Tierra, aviso de datos, radar 2D.
+ * - Derecha: análisis de energía y comunicación (solo métricas reales de lib/metrics.ts).
+ * - Pie: fecha UTC, simulación, franja del día lunar; cajón ANÁLISIS TEMPORAL con la gráfica.
+ *
+ * Tiempo: la ventana es un día lunar desde la fecha elegida (se calcula una vez). `cursor` es el
+ * instante mostrado dentro de ella; la simulación y la franja lo mueven.
  */
-import { Suspense, lazy, useMemo } from "react";
+import { Suspense, lazy, useDeferredValue, useMemo } from "react";
 import { DataStatusBanner } from "./components/common/DataStatusBanner";
-import { DateTimePicker } from "./components/config/DateTimePicker";
-import { MetricsSummary } from "./components/config/MetricsSummary";
 import { ElevationChart } from "./components/detail/ElevationChart";
-import { FreeCoordinatesForm } from "./components/sites/FreeCoordinatesForm";
+import { BottomDrawer } from "./components/layout/BottomDrawer";
+import { HudFooter } from "./components/layout/HudFooter";
+import { HudHeader } from "./components/layout/HudHeader";
+import type { GlobeView } from "./components/map/LunarGlobe";
+import { RadarTerminator } from "./components/map/RadarTerminator";
+import { AnalysisPanel } from "./components/panels/AnalysisPanel";
+import { TargetPanel } from "./components/panels/TargetPanel";
+import { formatLatLon } from "./components/sites/FreeCoordinatesForm";
+import { SynodicTimeline } from "./components/timeline/SynodicTimeline";
 import { useDataset, useWindowEphemeris } from "./hooks/useEphemeris";
+import { useSimulation } from "./hooks/useSimulation";
+import { formatUtc } from "./lib/format";
+import { EARTH_RADIUS_KM, SUN_RADIUS_KM, applyHorizon } from "./lib/horizon";
 import { computeSiteMetrics } from "./lib/metrics";
 import { computeSunEarthSeries, interpolateBody } from "./lib/sunEarth";
-import { formatUtc } from "./lib/format";
 import { addLunarDays, parseUtc, toIsoUtc } from "./lib/time";
 import { useAppStore } from "./store/useAppStore";
 
@@ -24,84 +37,186 @@ const LunarGlobe = lazy(() => import("./components/map/LunarGlobe"));
 
 const CHART_STEP_MINUTES = 20;
 
+const VIEWS: [GlobeView, string][] = [
+  ["site", "🎯 CENTRAR"],
+  ["southPole", "POLO SUR"],
+  ["nearside", "CARA VISIBLE"],
+];
+
 function clampIso(iso: string, min: string, max: string): string {
   return toIsoUtc(Math.min(Math.max(parseUtc(iso), parseUtc(min)), parseUtc(max)));
 }
 
 export default function App() {
   const ds = useDataset();
-  const { customCoords, date, setCustomCoords, setDate } = useAppStore();
+  const {
+    customCoords, date, setCustomCoords, setDate,
+    cursor, setCursor, playing, setPlaying, speed, setSpeed,
+    mode, hudCollapsed, drawerOpen, setDrawerOpen, globeView, requestGlobeView,
+  } = useAppStore();
   const coverage = ds.status === "ready" ? ds.coverage : null;
 
   const at = coverage ? clampIso(date ?? toIsoUtc(Math.floor(Date.now() / 60_000) * 60_000), coverage.start, coverage.end) : null;
   const windowEnd = coverage && at ? clampIso(addLunarDays(at, 1), at, coverage.end) : null;
   const truncated = coverage && at && windowEnd ? parseUtc(windowEnd) < parseUtc(addLunarDays(at, 1)) - 60_000 : false;
+  const now = at && windowEnd ? clampIso(cursor ?? at, at, windowEnd) : null;
 
+  useSimulation(at, windowEnd, coverage?.end ?? null);
   const { ephemeris, error: loadError } = useWindowEphemeris(ds, at, windowEnd);
 
-  const result = useMemo(() => {
+  // Serie de la ventana (una vez por ventana y punto)
+  const windowData = useMemo(() => {
     if (!ephemeris || !at || !windowEnd) return null;
     try {
       const series = computeSunEarthSeries(ephemeris, customCoords, { start: at, end: windowEnd, stepMinutes: CHART_STEP_MINUTES });
-      const metrics = computeSiteMetrics({
-        scenarioId: "draft",
-        siteId: `custom-${customCoords.lat}-${customCoords.lon}`,
+      return {
         series,
-        profile: null,
-        at,
-      });
-      return { series, metrics, error: null };
+        sun: applyHorizon(series.sun, null, SUN_RADIUS_KM),
+        earth: applyHorizon(series.earth, null, EARTH_RADIUS_KM),
+        error: null,
+      };
     } catch (e) {
-      return { series: null, metrics: null, error: String(e) };
+      return { series: null, sun: [], earth: [], error: String(e) };
     }
   }, [ephemeris, customCoords, at, windowEnd]);
 
-  const bodies = useMemo(() => {
-    if (!ephemeris || !at) return { sun: null, earth: null };
-    const t = parseUtc(at);
-    return { sun: interpolateBody(ephemeris, "sun", t), earth: interpolateBody(ephemeris, "earth", t) };
-  }, [ephemeris, at]);
+  // Métricas en el instante mostrado
+  const metrics = useMemo(() => {
+    if (!windowData?.series || !now) return null;
+    try {
+      return computeSiteMetrics({
+        scenarioId: "draft",
+        siteId: `custom-${customCoords.lat}-${customCoords.lon}`,
+        series: windowData.series,
+        profile: null,
+        at: now,
+      });
+    } catch {
+      return null;
+    }
+  }, [windowData, customCoords, now]);
 
-  const error = ds.status === "error" ? ds.message : (loadError ?? result?.error ?? null);
+  const bodies = useMemo(() => {
+    if (!ephemeris || !now) return { sun: null, earth: null };
+    const t = parseUtc(now);
+    return { sun: interpolateBody(ephemeris, "sun", t), earth: interpolateBody(ephemeris, "earth", t) };
+  }, [ephemeris, now]);
+
+  // La gráfica (pesada) sigue al cursor con menos prioridad
+  const chartCursor = useDeferredValue(now);
+
+  const error = ds.status === "error" ? ds.message : (loadError ?? windowData?.error ?? null);
   const synthetic = ds.status === "ready" && ds.synthetic;
 
+  const scrub = (iso: string) => {
+    setPlaying(false);
+    setCursor(iso);
+  };
+
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>Lunar Landing Site Navigator</h1>
-        <p className="subtitle">Sol y Tierra sobre el horizonte lunar: energía y comunicación por sitio y fecha</p>
-      </header>
+    <div className="scanlines font-sans antialiased text-slate-200 flex flex-col min-h-screen lg:h-screen lg:overflow-hidden selection:bg-cyan-500/30 selection:text-cyan-100">
+      {/* Escenario 3D a pantalla completa */}
+      <div className="fixed inset-0 z-0 bg-void">
+        <Suspense fallback={<p className="p-6 font-mono text-xs text-cyan-300/70">CARGANDO GLOBO 3D…</p>}>
+          <LunarGlobe
+            sunDir={bodies.sun}
+            earthDir={bodies.earth}
+            site={customCoords}
+            sunVisible={metrics?.sun.visibleNow ?? null}
+            earthVisible={metrics?.earth.visibleNow ?? null}
+            onPick={setCustomCoords}
+            viewRequest={globeView}
+          />
+        </Suspense>
+      </div>
 
-      <DataStatusBanner synthetic={synthetic} error={error} />
+      <HudHeader />
 
-      {ds.status === "loading" && <p className="loading">Cargando datos…</p>}
+      {ds.status === "loading" && <p className="relative z-10 p-4 font-mono text-xs text-cyan-300/80">CARGANDO DATOS…</p>}
 
-      {coverage && at && (
-        <main className="app-layout">
-          <section className="zone zone-selector" aria-label="Sitio">
-            <FreeCoordinatesForm value={customCoords} onChange={setCustomCoords} />
-            <div className="card placeholder">
-              <h2 className="card-title">Sitios curados</h2>
-              <p className="note">Próximamente: Apollo, CLPS, misiones comerciales y de otras agencias, con su horizonte LOLA.</p>
+      {coverage && at && now && (
+        <>
+          <main className="relative z-10 flex-1 flex flex-col lg:flex-row justify-between p-2.5 sm:p-3.5 gap-3 pointer-events-none overflow-y-auto lg:overflow-hidden min-h-0">
+            <TargetPanel coords={customCoords} onCoords={setCustomCoords} hidden={hudCollapsed} />
+
+            {/* Capas centrales */}
+            <div className="order-first lg:order-none flex-1 flex flex-col justify-between gap-2 min-h-[55vh] lg:min-h-0 pointer-events-none">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="pointer-events-auto hud-box rounded-lg px-3 py-1.5 flex flex-wrap items-center gap-3">
+                    <div>
+                      <div className="text-[9px] font-mono text-cyan-400/80 tracking-widest">OBJETIVO ACTIVO · {formatUtc(now)}</div>
+                      <div className="font-display text-xs sm:text-sm font-bold text-white tracking-wide flex flex-wrap items-center gap-2">
+                        <span>COORDENADAS LIBRES</span>
+                        <span className="text-xs font-mono text-emerald-400">[{formatLatLon(customCoords)}]</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1" role="group" aria-label="Vista del globo">
+                      {VIEWS.map(([v, label]) => (
+                        <button key={v} type="button" onClick={() => requestGlobeView(v)} className="btn-sci px-2 py-1 rounded text-[11px] font-mono">
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {metrics && !metrics.earth.visibleNow && (
+                    <div role="status" className="pointer-events-auto bg-rose-950/90 border border-rose-500 text-rose-200 px-3 py-1.5 rounded-lg text-xs font-mono font-bold shadow-[0_0_20px_rgba(255,51,85,0.45)] flex items-center gap-2 animate-pulse">
+                      <span aria-hidden="true">⚠</span> SIN ENLACE DIRECTO CON LA TIERRA EN ESTE INSTANTE
+                    </div>
+                  )}
+                </div>
+                <DataStatusBanner synthetic={synthetic} error={error} />
+                {truncated && windowEnd && (
+                  <p className="pointer-events-auto self-start hud-box rounded px-2 py-1 text-[11px] font-mono text-amber-200">
+                    Ventana recortada: los datos cargados terminan el {formatUtc(windowEnd)}.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <RadarTerminator sunDir={bodies.sun} earthDir={bodies.earth} site={customCoords} onPick={setCustomCoords} />
+                <div className="hidden sm:flex pointer-events-auto hud-box rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-cyan-200/75 items-center gap-3">
+                  <span>🖱 Arrastrar: girar</span>
+                  <span>⚙ Rueda: zoom</span>
+                  <span>⌖ Clic: fijar punto</span>
+                </div>
+              </div>
             </div>
-          </section>
 
-          <section className="zone zone-comparison" aria-label="Globo y gráfica">
-            <Suspense fallback={<div className="card globe-card"><p className="note">Cargando el globo 3D…</p></div>}>
-              <LunarGlobe sunDir={bodies.sun} earthDir={bodies.earth} site={customCoords} onPick={setCustomCoords} />
-            </Suspense>
-            {result?.series && <ElevationChart series={result.series} profile={null} at={at} />}
-            {truncated && windowEnd && (
-              <p className="note">La ventana se recorta: los datos cargados terminan el {formatUtc(windowEnd)}.</p>
+            <AnalysisPanel metrics={metrics} mode={mode} hidden={hudCollapsed} />
+          </main>
+
+          <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+            {drawerOpen && windowData?.series && (
+              <ElevationChart series={windowData.series} profile={null} at={at} cursor={chartCursor} />
             )}
-          </section>
+          </BottomDrawer>
 
-          <section className="zone zone-detail" aria-label="Fecha y métricas">
-            <DateTimePicker value={at} min={coverage.start} max={coverage.end} onChange={setDate} plannedDate={null} />
-            {result?.metrics && <MetricsSummary metrics={result.metrics} />}
-          </section>
-        </main>
+          <HudFooter
+            value={at}
+            min={coverage.start}
+            max={coverage.end}
+            plannedDate={null}
+            onChange={setDate}
+            playing={playing}
+            onTogglePlay={() => setPlaying(!playing)}
+            speed={speed}
+            onSpeed={setSpeed}
+            drawerOpen={drawerOpen}
+            onToggleDrawer={() => setDrawerOpen(!drawerOpen)}
+            timeline={
+              windowData && windowData.sun.length > 0 ? (
+                <SynodicTimeline sun={windowData.sun} earth={windowData.earth} cursor={now} onScrub={scrub} />
+              ) : null
+            }
+          />
+        </>
       )}
+
+      <p className="sr-only">
+        Textura del globo y del radar: NASA's Scientific Visualization Studio (mosaico LROC WAC de ASU), solo como referencia visual.
+      </p>
     </div>
   );
 }

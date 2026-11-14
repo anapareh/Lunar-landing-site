@@ -1,0 +1,42 @@
+/*
+ * Tema HUD (estética de web/estetica.html), solo oscuro.
+ * - Neón (cian/ámbar/rojo/esmeralda): bordes, brillos, textos y decoración.
+ * - Series de datos (líneas de la gráfica): pasos más apagados que pasan el validador de paleta
+ *   sobre el fondo void (dataviz/validate_palette.js, modo oscuro, superficie #03050a).
+ */
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Orbitron", "Segoe UI", sans-serif;
+  --font-sans: "Rajdhani", system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  --color-void: #03050a;
+  --color-hud-cyan: #00f0ff;
+  --color-hud-amber: #ffaa00;
+  --color-hud-red: #ff3355;
+  --color-hud-emerald: #00ff9d;
+
+  /* Series de datos validadas */
+  --color-series-sun: #c98500;
+  --color-series-earth: #0fa3c2;
+}
+
+:root {
+  color-scheme: dark;
+  --cyan: #00f0ff;
+  --amber: #ffaa00;
+  --red: #ff3355;
+  --emerald: #00ff9d;
+}
+
+html,
+body {
+  background-color: #03050a;
+  color: #e2e8f0;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}

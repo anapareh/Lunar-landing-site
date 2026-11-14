@@ -11,6 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
     "d3": "^7.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -19,11 +22,13 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "~4.1.0",
     "@types/d3": "^7.4.3",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.6",
     "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^4.5.1",
+    "tailwindcss": "~4.1.0",
     "typescript": "~5.8.3",
     "vite": "^6.3.5",
     "vitest": "^3.2.2"

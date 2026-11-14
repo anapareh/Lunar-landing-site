@@ -9,7 +9,7 @@ import { makeSyntheticEphemeris } from "../data/fixtures/syntheticEphemeris";
 import { makeSyntheticHorizon } from "../data/fixtures/syntheticHorizon";
 import type { HorizonProfile } from "../types";
 import { EARTH_RADIUS_KM, SUN_RADIUS_KM, angularRadiusDeg, applyHorizon } from "./horizon";
-import { computeSiteMetrics, countdown, visibilityWindows, visibleHours } from "./metrics";
+import { azimuthAt, computeSiteMetrics, countdown, visibilityWindows, visibleHours } from "./metrics";
 import { computeSunEarthSeries, type Observer } from "./sunEarth";
 import { SYNODIC_MONTH_DAYS, addDays } from "./time";
 
@@ -118,6 +118,19 @@ describe("Tierra", () => {
   });
 });
 
+describe("azimuthAt", () => {
+  const t = [0, 1000, 2000];
+  it("interpola por el camino corto al cruzar el norte", () => {
+    expect(azimuthAt(t, [350, 10, 30], 500)).toBeCloseTo(0, 9);
+    expect(azimuthAt(t, [350, 10, 30], 250)).toBeCloseTo(355, 9);
+    expect(azimuthAt(t, [10, 350, 330], 500)).toBeCloseTo(0, 9);
+  });
+  it("interpola normal sin cruce y devuelve la última muestra en el extremo", () => {
+    expect(azimuthAt(t, [90, 100, 110], 1500)).toBeCloseTo(105, 9);
+    expect(azimuthAt(t, [90, 100, 110], 2000)).toBe(110);
+  });
+});
+
 describe("computeSiteMetrics", () => {
   it("agrega Sol y Tierra para un escenario", () => {
     const { series } = lunarDay(EQ0);
@@ -127,6 +140,8 @@ describe("computeSiteMetrics", () => {
     near(m.windowHours, LUNAR_DAY_H, 10 * ONE_MINUTE_H);
     expect(m.sun.visibleNow).toBe(true);
     expect(m.sun.elevationNowDeg).toBeCloseTo(90, 3);
+    expect(m.sun.azimuthNowDeg).toBeGreaterThanOrEqual(0);
+    expect(m.sun.azimuthNowDeg).toBeLessThan(360);
     expect(m.sun.maxElevationDeg).toBeCloseTo(90, 3);
     expect(m.sun.visibleFractionNow).toBe(1);
     expect(m.earth.visibleNow).toBe(true);

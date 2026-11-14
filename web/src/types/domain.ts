@@ -45,6 +45,8 @@ export interface Scenario {
 export interface BodyMetrics {
   /** Elevación del centro en el instante de referencia (horizonte geométrico). */
   elevationNowDeg: number;
+  /** Acimut del centro en el instante de referencia (desde el norte, horario). */
+  azimuthNowDeg: number;
   /** Altura del centro sobre el horizonte local en el instante de referencia. */
   clearanceNowDeg: number;
   /** Fracción del disco visible en el instante de referencia (0..1). */
