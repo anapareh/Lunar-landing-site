@@ -1,0 +1,207 @@
+/**
+ * Comparativa de escenarios (sitio + fecha) lado a lado. Solo métricas calculadas en lib/.
+ * Cada escenario se evalúa en su propia ventana de un día lunar desde su fecha.
+ * Destaca el mejor valor en las filas donde "más es mejor" (horas de luz, de Tierra visible y
+ * elevación solar máxima). Acciones por columna: ver en el globo, +1 día lunar, quitar.
+ */
+import { useEffect, useRef, type ReactNode } from "react";
+import type { Scenario } from "../../types";
+import type { Dataset } from "../../hooks/useEphemeris";
+import { useScenarioMetrics, type ScenarioResult } from "../../hooks/useScenarioMetrics";
+import { bestIndices, shiftScenario } from "../../lib/compare";
+import { formatDeg, formatDuration, formatHours, formatPercent, formatUtc } from "../../lib/format";
+import { MAX_SCENARIOS, useAppStore } from "../../store/useAppStore";
+import { HorizonLevelBadge } from "../common/HorizonLevelBadge";
+import { formatLatLon } from "../sites/FreeCoordinatesForm";
+import { VisibilityStrip } from "./VisibilityStrip";
+
+type Ok = Extract<ScenarioResult, { status: "ok" }>;
+
+interface RowDef {
+  label: string;
+  render: (r: Ok, s: Scenario) => ReactNode;
+  /** Valor numérico para destacar el mejor (si procede). */
+  num?: (r: Ok) => number | null;
+  group?: "sun" | "earth";
+}
+
+const signed = (d: number) => `${d >= 0 ? "+" : ""}${formatDeg(d)}`;
+const countdown = (visible: boolean, toSet: number | null, toRise: number | null, set: string, rise: string) => {
+  const h = visible ? toSet : toRise;
+  return `${visible ? set : rise}: ${h === null ? "no ocurre en la ventana" : formatDuration(h)}`;
+};
+
+const ROWS: RowDef[] = [
+  { label: "Horizonte", render: (r) => <HorizonLevelBadge level={r.metrics.horizonLevel} /> },
+  {
+    label: "Ciclo (luz / Tierra)",
+    render: (r, s) => <VisibilityStrip sun={r.sun} earth={r.earth} label={`Luz y visibilidad de la Tierra durante el día lunar de ${s.label}`} />,
+  },
+  { group: "sun", label: "Elevación solar en la fecha", render: (r) => signed(r.metrics.sun.elevationNowDeg) },
+  { group: "sun", label: "Disco solar visible", render: (r) => formatPercent(r.metrics.sun.visibleFractionNow) },
+  {
+    group: "sun",
+    label: "Sol",
+    render: (r) => countdown(r.metrics.sun.visibleNow, r.metrics.sun.hoursToSet, r.metrics.sun.hoursToRise, "ocaso en", "alba en"),
+  },
+  {
+    group: "sun",
+    label: "Luz en la ventana",
+    render: (r) => `${formatHours(r.metrics.sun.visibleHours)} (${formatPercent(r.metrics.sun.visibleHours / r.metrics.windowHours)})`,
+    num: (r) => r.metrics.sun.visibleHours,
+  },
+  { group: "sun", label: "Elevación solar máxima", render: (r) => signed(r.metrics.sun.maxElevationDeg), num: (r) => r.metrics.sun.maxElevationDeg },
+  {
+    group: "earth",
+    label: "Tierra en la fecha",
+    render: (r) => (
+      <span className={r.metrics.earth.visibleNow ? "text-sky-400" : "text-red-400"}>
+        {signed(r.metrics.earth.elevationNowDeg)} · {r.metrics.earth.visibleNow ? "DTE directo" : "sin línea directa"}
+      </span>
+    ),
+  },
+  {
+    group: "earth",
+    label: "Tierra",
+    render: (r) => countdown(r.metrics.earth.visibleNow, r.metrics.earth.hoursToSet, r.metrics.earth.hoursToRise, "se pone en", "sale en"),
+  },
+  {
+    group: "earth",
+    label: "Tierra visible en la ventana",
+    render: (r) => `${formatHours(r.metrics.earth.visibleHours)} (${formatPercent(r.metrics.earth.visibleHours / r.metrics.windowHours)})`,
+    num: (r) => r.metrics.earth.visibleHours,
+  },
+];
+
+export interface CompareModalProps {
+  ds: Dataset;
+  /** Lleva un escenario al globo (coordenadas + fecha). */
+  onLoad: (s: Scenario) => void;
+}
+
+export function CompareModal({ ds, onLoad }: CompareModalProps) {
+  const { compareOpen, setCompareOpen, scenarios, removeScenario, addScenario, notify } = useAppStore();
+  const results = useScenarioMetrics(ds, scenarios, compareOpen);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!compareOpen) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setCompareOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [compareOpen, setCompareOpen]);
+
+  if (!compareOpen) return null;
+
+  const addLater = (s: Scenario) => {
+    const r = addScenario(shiftScenario(s, 1));
+    notify(r === "added" ? "Añadido el mismo sitio un día lunar después" : r === "full" ? `Máximo ${MAX_SCENARIOS} escenarios` : "Ese escenario ya está en la tabla");
+  };
+
+  const okAt = (s: Scenario): Ok | null => {
+    const r = results[s.id];
+    return r && r.status === "ok" ? r : null;
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && setCompareOpen(false)}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby="compare-title" className="console-panel rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-borderline flex items-center justify-between gap-3 bg-panel">
+          <div>
+            <h2 id="compare-title" className="text-sm sm:text-base font-semibold text-telemetry">
+              Comparativa de escenarios de alunizaje
+            </h2>
+            <p className="text-xs text-steel mt-0.5">
+              Cada escenario se evalúa durante un día lunar desde su fecha. Destacado = mejor valor de la fila.
+            </p>
+          </div>
+          <button ref={closeRef} type="button" onClick={() => setCompareOpen(false)} className="btn-control px-2.5 py-1 rounded text-xs font-medium">
+            Cerrar ✕
+          </button>
+        </div>
+
+        <div className="p-4 overflow-auto flex-1">
+          {scenarios.length === 0 ? (
+            <p className="text-sm text-steel">
+              Aún no hay escenarios. Usa <strong className="text-telemetry">+ Comparar</strong> en el panel de sitios para añadir el
+              punto y la fecha actuales (hasta {MAX_SCENARIOS}).
+            </p>
+          ) : (
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-borderline align-top">
+                  <th scope="col" className="py-2.5 px-3 w-44 text-steel font-mono text-[11px] font-normal">PARÁMETRO</th>
+                  {scenarios.map((s, i) => (
+                    <th key={s.id} scope="col" className="py-2.5 px-3 min-w-[190px] font-normal">
+                      <div className="text-[10px] font-mono text-steel">ESCENARIO {String(i + 1).padStart(2, "0")}</div>
+                      <div className="text-telemetry font-semibold">{s.label}</div>
+                      <div className="font-mono text-sky-400 tabular-nums">{formatLatLon(s)}</div>
+                      <div className="font-mono text-steel tabular-nums">{formatUtc(s.date)}</div>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        <button type="button" onClick={() => onLoad(s)} className="btn-control px-1.5 py-0.5 rounded text-[11px]">
+                          Ver
+                        </button>
+                        <button type="button" onClick={() => addLater(s)} className="btn-control px-1.5 py-0.5 rounded text-[11px]" title="Mismo sitio, un día lunar más tarde">
+                          +1 día lunar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeScenario(s.id)}
+                          className="btn-control px-1.5 py-0.5 rounded text-[11px] !text-red-300"
+                          aria-label={`Quitar escenario ${i + 1}`}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {okAt(s)?.truncated && <div className="text-[10px] text-amber-400 mt-1">Ventana recortada por los datos</div>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borderline/70">
+                {ROWS.map((row) => {
+                  const best = row.num ? bestIndices(scenarios.map((s) => (okAt(s) ? row.num!(okAt(s)!) : null))) : [];
+                  return (
+                    <tr key={row.label} className="hover:bg-panel/50">
+                      <th scope="row" className="py-2 px-3 font-normal text-steel">
+                        {row.group === "sun" && <span className="text-amber-400" aria-hidden="true">☀ </span>}
+                        {row.group === "earth" && <span className="text-sky-400" aria-hidden="true">📡 </span>}
+                        {row.label}
+                      </th>
+                      {scenarios.map((s, i) => {
+                        const r = results[s.id];
+                        const isBest = best.includes(i);
+                        return (
+                          <td key={s.id} className={`py-2 px-3 font-mono tabular-nums ${isBest ? "text-emerald-400 font-semibold" : "text-telemetry"}`}>
+                            {!r ? (
+                              <span className="text-steel">Calculando…</span>
+                            ) : r.status === "error" ? (
+                              <span className="text-red-300">{r.message}</span>
+                            ) : (
+                              <>
+                                {row.render(r, s)}
+                                {isBest && <span className="sr-only"> (mejor)</span>}
+                              </>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="p-3 border-t border-borderline bg-obsidian/80 text-xs text-steel">
+          Coordenadas libres con horizonte geométrico. Con perfiles LOLA, el relieve puede cambiar las horas de luz y de Tierra visible.
+        </div>
+      </div>
+    </div>
+  );
+}

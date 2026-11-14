@@ -12,6 +12,7 @@ dependencies = [
     "numpy",
     "rasterio",
     "requests",
+    "truststore",
 ]
 
 [project.optional-dependencies]

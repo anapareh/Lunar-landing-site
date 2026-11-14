@@ -8,6 +8,8 @@ import type { Coords } from "../../store/useAppStore";
 export interface FreeCoordinatesFormProps {
   value: Coords;
   onChange: (c: Coords) => void;
+  /** Añade el punto (ya fijado) y la fecha actual a la comparativa. */
+  onAddCompare?: () => void;
 }
 
 function parse(text: string, min: number, max: number): number | null {
@@ -19,7 +21,7 @@ export function formatLatLon({ lat, lon }: Coords): string {
   return `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"} ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? "E" : "O"}`;
 }
 
-export function FreeCoordinatesForm({ value, onChange }: FreeCoordinatesFormProps) {
+export function FreeCoordinatesForm({ value, onChange, onAddCompare }: FreeCoordinatesFormProps) {
   const [lat, setLat] = useState(String(value.lat));
   const [lon, setLon] = useState(String(value.lon));
   useEffect(() => {
@@ -69,13 +71,25 @@ export function FreeCoordinatesForm({ value, onChange }: FreeCoordinatesFormProp
         {field("lat", "LAT (−90° / +90°)", lat, setLat, latV !== null, latV === null ? "Fuera de rango" : "Norte +")}
         {field("lon", "LON (−180° / +180°)", lon, setLon, lonV !== null, lonV === null ? "Fuera de rango" : "Este +")}
       </div>
-      <button
-        type="submit"
-        disabled={latV === null || lonV === null}
-        className="w-full btn-control py-1.5 px-2.5 rounded text-xs font-medium text-telemetry"
-      >
-        Fijar coordenadas
-      </button>
+      <div className="flex gap-1.5">
+        <button
+          type="submit"
+          disabled={latV === null || lonV === null}
+          className="flex-1 btn-control py-1.5 px-2.5 rounded text-xs font-medium text-telemetry"
+        >
+          Fijar coordenadas
+        </button>
+        {onAddCompare && (
+          <button
+            type="button"
+            onClick={onAddCompare}
+            title="Añadir el punto fijado y la fecha actual a la comparativa"
+            className="btn-control px-2.5 py-1.5 rounded text-xs font-mono !text-sky-400 hover:!text-sky-300"
+          >
+            + Comparar
+          </button>
+        )}
+      </div>
       <p className="mt-1.5 text-[11px] text-steel leading-snug">
         Coordenadas libres: sin relieve, se usa el horizonte geométrico.
       </p>

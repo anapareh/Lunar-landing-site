@@ -1,0 +1,30 @@
+{
+  "_note": "DEM polares de LOLA (PDS Geosciences, LRO-L-LOLA-4-GDR-V1.0, V2.0). Alturas int16 LSB x 0.5 m sobre una esfera de 1737.4 km; estereográfica polar centrada en el polo sur; marco MEAN EARTH/POLAR AXIS OF DE421. Se descargan a data-pipeline/raw/lola/ con scripts/fetch_lola.py.",
+  "base_url": "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/polar/img/",
+  "dems": [
+    {
+      "file": "ldem_75s_240m.lbl",
+      "path": "ldem_75s_240m.lbl",
+      "role": "Etiqueta PDS3 del DEM lejano",
+      "sha256": "ec07239f41d8abc1a3681495b5799b770c7206b5268b76721d69180df0422e02"
+    },
+    {
+      "file": "ldem_75s_240m.img",
+      "path": "ldem_75s_240m.img",
+      "role": "DEM 75S-90S a 240 m/píxel (relieve lejano)",
+      "sha256": "d031efe2611b17dfbf3c158f5e15dc04cd5719349dcbf6384bb21fd97697c490"
+    },
+    {
+      "file": "ldem_85s_40m.lbl",
+      "path": "ldem_85s_40m.lbl",
+      "role": "Etiqueta PDS3 del DEM cercano",
+      "sha256": "d8105776af7fb79b1862ffa3946d013ec34f4dc6a00b7f6bff22ef8f768a5d3d"
+    },
+    {
+      "file": "ldem_85s_40m.img",
+      "path": "ldem_85s_40m.img",
+      "role": "DEM 85S-90S a 40 m/píxel (relieve cercano)",
+      "sha256": "1609e9b860748e0b9952a7239c51b37d3b2a799d35e9fc3c258526711cc1e51d"
+    }
+  ]
+}

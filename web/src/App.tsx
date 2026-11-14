@@ -13,6 +13,10 @@
  */
 import { Suspense, lazy, useDeferredValue, useMemo } from "react";
 import { DataStatusBanner } from "./components/common/DataStatusBanner";
+import { Toast } from "./components/common/Toast";
+import { CompareModal } from "./components/compare/CompareModal";
+import { makeScenario } from "./lib/compare";
+import type { Scenario } from "./types";
 import { ElevationChart } from "./components/detail/ElevationChart";
 import { BottomDrawer } from "./components/layout/BottomDrawer";
 import { HudFooter } from "./components/layout/HudFooter";
@@ -54,6 +58,7 @@ export default function App() {
     customCoords, date, setCustomCoords, setDate,
     cursor, setCursor, playing, setPlaying, speed, setSpeed,
     mode, hudCollapsed, showGrid, drawerOpen, setDrawerOpen, globeView, requestGlobeView,
+    addScenario, setCompareOpen, notify,
   } = useAppStore();
   const coverage = ds.status === "ready" ? ds.coverage : null;
 
@@ -117,6 +122,27 @@ export default function App() {
     setCursor(iso);
   };
 
+  // Comparativa: añadir el punto y la fecha actuales; cargar un escenario en el globo
+  const addCurrentToCompare = () => {
+    if (!at) return;
+    const r = addScenario(makeScenario(customCoords.lat, customCoords.lon, at));
+    const n = useAppStore.getState().scenarios.length;
+    notify(
+      r === "added"
+        ? `Añadido a la comparativa (${n}/4)`
+        : r === "duplicate"
+          ? "Ese punto y esa fecha ya están en la comparativa"
+          : "La comparativa ya tiene 4 escenarios",
+    );
+  };
+  const loadScenario = (s: Scenario) => {
+    setPlaying(false);
+    setCustomCoords({ lat: s.lat, lon: s.lon });
+    setDate(s.date);
+    setCompareOpen(false);
+    requestGlobeView("site");
+  };
+
   return (
     <div className="font-sans antialiased text-telemetry flex flex-col min-h-screen lg:h-screen lg:overflow-hidden selection:bg-sky-500/30 selection:text-white">
       {/* Escenario 3D a pantalla completa */}
@@ -142,7 +168,7 @@ export default function App() {
       {coverage && at && now && (
         <>
           <main className="relative z-10 flex-1 flex flex-col lg:flex-row justify-between p-2.5 sm:p-3.5 gap-3 pointer-events-none overflow-y-auto lg:overflow-hidden min-h-0">
-            <TargetPanel coords={customCoords} onCoords={setCustomCoords} hidden={hudCollapsed} />
+            <TargetPanel coords={customCoords} onCoords={setCustomCoords} onAddCompare={addCurrentToCompare} hidden={hudCollapsed} />
 
             {/* Capas centrales */}
             <div className="order-first lg:order-none flex-1 flex flex-col justify-between gap-2 min-h-[55vh] lg:min-h-0 pointer-events-none">
@@ -224,8 +250,11 @@ export default function App() {
         </>
       )}
 
+      <CompareModal ds={ds} onLoad={loadScenario} />
+      <Toast />
+
       <p className="sr-only">
-        Textura del globo y del radar: NASA's Scientific Visualization Studio (mosaico LROC WAC de ASU), solo como referencia visual.
+        Textura del globo: NASA's Scientific Visualization Studio (mosaico LROC WAC de ASU), solo como referencia visual.
       </p>
     </div>
   );

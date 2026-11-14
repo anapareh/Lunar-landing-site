@@ -24,19 +24,23 @@ decisiones con fecha y motivo. Plan completo acordado: ver README y `architectur
 | D-015 | 2026-11-14 | Globo holográfico: Sol y Tierra como esferas en su dirección real (no a escala), rayo solar si el Sol es visible desde el punto y enlace DTE cian/rojo según la visibilidad calculada. Retícula, borde, estrellas y anillos son decorativos | Representación de la referencia, alimentada con datos propios |
 | D-016 | 2026-11-14 | **Simulación** del paso del tiempo (1 h/s, 6 h/s, 1 d/s) moviendo un cursor dentro de la ventana; franja del día lunar arrastrable; **radar del terminador** 2D (global / polo sur) con terminador geométrico | Objetivo 6 del reto; el radar es orientativo a escala global, las métricas usan el horizonte del punto |
 | D-017 | 2026-11-14 | Líneas de la gráfica en tonos validados (Sol `#c98500`, Tierra `#0fa3c2`); los neón de la referencia solo en decoración | Los neón fallan la banda de luminosidad del validador de paleta sobre el fondo void |
+| D-019 | 2026-11-14 | Efeméride real con SpiceyPy: `de440s.bsp` (posiciones) + `moon_pa_de421_1900-2050.bpc` y `moon_080317.tf` (marco `MOON_ME`), `LT+S`, paso 60 min, años 2026–2028 en `web/public/data/ephemeris/` | Coincide con JPL Horizons al límite de su resolución y el error de interpolación es < 0,0002° (`docs/validation.md`). Cierra Q-101, Q-103 y Q-107 |
+| D-021 | 2026-11-14 | **Comparativa de escenarios** (máx. 4): "+ Comparar" añade punto + fecha; tabla con métricas reales en la ventana de un día lunar de cada escenario, mini franja de luz/Tierra, mejor valor destacado (horas de luz, de Tierra visible, elevación solar máxima) y acciones Ver / +1 día lunar / quitar | Caso de uso central del enunciado (retrasos de lanzamiento, alternativas en la región) |
+| D-022 | 2026-11-14 | **Horizonte LOLA**: DEM PDS `ldem_85s_40m` (cerca, hasta 20 km) + `ldem_75s_240m` (lejos, hasta 300 km), marco ME/DE421; trazado de rayos cada 1° con curvatura exacta y base ENU de la web; observador a 2 m (provisional, Q-105). Proyección polar contrastada con GDAL (la fórmula directa del DSMAP_POLAR.CAT tiene el signo de X cruzado) | En el polo el relieve cambia las horas de luz del 100 % al 0–50 % en los puntos de prueba |
+| D-020 | 2026-11-14 | Descargas HTTPS del pipeline con `truststore` (almacén de certificados del sistema), sin desactivar la verificación TLS | En Windows, el paquete de certificados de Python no valida la cadena de naif.jpl.nasa.gov |
 | D-018 | 2026-11-14 | **Sustituye el estilo HUD de D-014/D-015** por la nueva maqueta: consola "LUNAR-FDS" sobria (Inter + JetBrains Mono, obsidiana/acero, solar `#f59e0b`, Tierra `#38bdf8`), sin brillos ni animaciones decorativas; retícula selenográfica conmutable (# GRID); radar con tonos planos. Gráfica con `#c98500` / `#279ad0` (validados sobre `#11161f`). Se añade la libración (punto sub-terrestre) desde la efeméride. Siguen fuera los valores inventados de la maqueta | Cambio de maqueta de la usuaria |
 
 ## Pendiente de medir / decidir durante el evento
 
 | Id | Tema | Propuesta | Se decide en |
 |----|------|-----------|--------------|
-| Q-101 | Paso de la efeméride (`step_minutes`) | 30–60 min con interpolación en el navegador | Hito M2 (tras validar) |
+| Q-101 | ~~Paso de la efeméride~~ **Cerrada (D-019):** 60 min | — | — |
 | Q-102 | Tolerancia frente a Horizons | < 0,05° en elevación (a ajustar) | Hito M2 |
-| Q-103 | SPK de posiciones: `de421.bsp` o `de440.bsp` | El que deje menor error frente a Horizons | Hito M2 |
+| Q-103 | ~~SPK de posiciones~~ **Cerrada (D-019):** `de440s.bsp` | — | — |
 | Q-104 | Producto y resolución del DEM LOLA; radio máximo del horizonte | Dos niveles (fino cerca, grueso lejos) | B2–B3 |
 | Q-105 | Altura del observador/panel sobre el suelo | Parámetro en `horizons/*.json` | B3 |
 | Q-106 | Radios y número de puntos de las "variantes cercanas" | Según el coste de cálculo | B4–B5 |
-| Q-107 | Formato de `CENTER` en Horizons (`coord@301`) | Confirmar con una llamada de prueba | B1 |
+| Q-107 | ~~Formato de `CENTER` en Horizons~~ **Cerrada (D-019):** `coord@301` funciona | — | — |
 
 ## Preguntas abiertas (no asumidas)
 

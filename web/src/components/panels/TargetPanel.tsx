@@ -7,10 +7,11 @@ import { FreeCoordinatesForm } from "../sites/FreeCoordinatesForm";
 export interface TargetPanelProps {
   coords: Coords;
   onCoords: (c: Coords) => void;
+  onAddCompare?: () => void;
   hidden?: boolean;
 }
 
-export function TargetPanel({ coords, onCoords, hidden }: TargetPanelProps) {
+export function TargetPanel({ coords, onCoords, onAddCompare, hidden }: TargetPanelProps) {
   return (
     <aside
       aria-label="Sitios de alunizaje"
@@ -23,7 +24,7 @@ export function TargetPanel({ coords, onCoords, hidden }: TargetPanelProps) {
         <span className="text-[10px] font-mono text-steel">Clic en el globo o el radar</span>
       </div>
 
-      <FreeCoordinatesForm value={coords} onChange={onCoords} />
+      <FreeCoordinatesForm value={coords} onChange={onCoords} onAddCompare={onAddCompare} />
 
       <div className="flex-1 overflow-y-auto p-2.5">
         <div className="text-[10px] font-mono font-semibold text-steel uppercase tracking-wider mb-1.5 px-1">Sitios curados</div>

@@ -57,13 +57,19 @@ export interface AppState {
 
   scenarios: Scenario[];
   activeScenarioId: string | null;
-  /** Ignora la petición si ya hay MAX_SCENARIOS o el id existe. */
-  addScenario: (scenario: Scenario) => void;
+  /** Añade si hay hueco y no está repetido; devuelve qué ha pasado. */
+  addScenario: (scenario: Scenario) => "added" | "duplicate" | "full";
   removeScenario: (id: string) => void;
   setActiveScenario: (id: string | null) => void;
+  compareOpen: boolean;
+  setCompareOpen: (open: boolean) => void;
+
+  /** Aviso breve; `n` cambia en cada aviso para reiniciar el temporizador. */
+  toast: { message: string; n: number } | null;
+  notify: (message: string) => void;
 }
 
-export const useAppStore = create<AppState>()((set) => ({
+export const useAppStore = create<AppState>()((set, get) => ({
   customCoords: { lat: 0, lon: 0 },
   date: null,
   setCustomCoords: (customCoords) => set({ customCoords }),
@@ -89,16 +95,22 @@ export const useAppStore = create<AppState>()((set) => ({
 
   scenarios: [],
   activeScenarioId: null,
-  addScenario: (scenario) =>
-    set((s) =>
-      s.scenarios.length >= MAX_SCENARIOS || s.scenarios.some((x) => x.id === scenario.id)
-        ? s
-        : { scenarios: [...s.scenarios, scenario] },
-    ),
+  addScenario: (scenario) => {
+    const { scenarios } = get();
+    if (scenarios.some((x) => x.id === scenario.id)) return "duplicate";
+    if (scenarios.length >= MAX_SCENARIOS) return "full";
+    set({ scenarios: [...scenarios, scenario] });
+    return "added";
+  },
   removeScenario: (id) =>
     set((s) => ({
       scenarios: s.scenarios.filter((x) => x.id !== id),
       activeScenarioId: s.activeScenarioId === id ? null : s.activeScenarioId,
     })),
   setActiveScenario: (id) => set({ activeScenarioId: id }),
+  compareOpen: false,
+  setCompareOpen: (compareOpen) => set({ compareOpen }),
+
+  toast: null,
+  notify: (message) => set((s) => ({ toast: { message, n: (s.toast?.n ?? 0) + 1 } })),
 }));

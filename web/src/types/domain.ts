@@ -37,7 +37,11 @@ export type HorizonLevel = "geometric" | "dem";
 export interface Scenario {
   id: string;
   siteId: string;
-  /** Fecha de referencia ISO 8601 UTC. */
+  /** Nombre visible (sitio curado o "Coordenadas libres"). */
+  label: string;
+  lat: number;
+  lon: number;
+  /** Fecha de referencia ISO 8601 UTC (inicio de la ventana de un día lunar). */
   date: string;
 }
 

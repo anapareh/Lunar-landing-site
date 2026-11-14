@@ -56,6 +56,8 @@ cd data-pipeline
 python -m venv .venv
 # Windows: .venv\Scripts\activate   |  Unix: source .venv/bin/activate
 pip install -e ".[dev]"
+python scripts/fetch_kernels.py      # descarga los kernels SPICE (~35 MB) a raw/kernels/
+python scripts/build_ephemeris.py    # genera web/public/data/ephemeris/<año>.json + manifest.json
 pytest
 
 # Web

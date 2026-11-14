@@ -1,14 +1,13 @@
 """Carga de la lista de sitios (``data/sites.json``, contrato v1).
 
-Propósito futuro:
-- Leer ``data/sites.json``, validarlo contra ``docs/schemas/sites.schema.json`` y convertirlo
-  en objetos ``Site``.
-- Normalizar la longitud a −180..180 (este positiva).
-- Filtrar los sitios sin coordenadas antes de calcular horizontes o exportar.
+- Lee ``data/sites.json`` (validado por tests/test_schemas.py contra docs/schemas/sites.schema.json).
+- Normaliza la longitud a −180..180 (este positiva).
+- ``usable_sites`` devuelve solo los que tienen coordenadas.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -56,17 +55,39 @@ class Site:
     notes: str | None = None
 
 
-def load_sites(path: Path = DEFAULT_SITES_PATH) -> list[Site]:
-    """Lee, valida contra el schema y construye la lista de ``Site``.
+def normalize_lon(lon: float) -> float:
+    """Longitud este positiva en −180..180."""
+    v = ((lon + 180.0) % 360.0) - 180.0
+    return 180.0 if v == -180.0 and lon > 0 else v
 
-    TODO: parsear JSON, validar con jsonschema, normalizar la longitud y construir los objetos.
-    """
-    raise NotImplementedError("TODO: load_sites")
+
+def load_sites(path: Path = DEFAULT_SITES_PATH) -> list[Site]:
+    """Lee ``sites.json`` y construye la lista de ``Site`` (longitud normalizada)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    out = []
+    for s in data["sites"]:
+        out.append(
+            Site(
+                id=s["id"],
+                name=s["name"],
+                mission=s["mission"],
+                agency=s["agency"],
+                category=s["category"],
+                status=s["status"],
+                location_kind=s["location_kind"],
+                lat=s["lat"],
+                lon=normalize_lon(s["lon"]) if s["lon"] is not None else None,
+                date=SiteDate(**s["date"]),
+                sources=[Source(**x) for x in s["sources"]],
+                verified=s["verified"],
+                verified_by=s["verified_by"],
+                verified_on=s["verified_on"],
+                notes=s["notes"],
+            )
+        )
+    return out
 
 
 def usable_sites(sites: list[Site]) -> list[Site]:
-    """Devuelve solo los sitios con coordenadas utilizables (lat/lon no nulos).
-
-    TODO: decidir si además se exige ``verified`` para exportar a la web.
-    """
-    raise NotImplementedError("TODO: usable_sites")
+    """Sitios con coordenadas (lat y lon no nulos)."""
+    return [s for s in sites if s.lat is not None and s.lon is not None]

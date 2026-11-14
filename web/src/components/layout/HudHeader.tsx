@@ -10,7 +10,7 @@ export interface HudHeaderProps {
 }
 
 export function HudHeader({ synthetic }: HudHeaderProps) {
-  const { mode, setMode, hudCollapsed, toggleHud, showGrid, toggleGrid } = useAppStore();
+  const { mode, setMode, hudCollapsed, toggleHud, showGrid, toggleGrid, scenarios, setCompareOpen } = useAppStore();
   const modeBtn = (m: "tech" | "edu", label: string) => (
     <button
       type="button"
@@ -82,6 +82,17 @@ export function HudHeader({ synthetic }: HudHeaderProps) {
           {modeBtn("tech", "Ingeniería")}
           {modeBtn("edu", "Divulgativo")}
         </div>
+        <button
+          type="button"
+          onClick={() => setCompareOpen(true)}
+          className="btn-control px-2.5 py-1.5 rounded text-xs font-medium flex items-center gap-1.5"
+          aria-haspopup="dialog"
+        >
+          Comparar sitios
+          <span className="px-1.5 bg-obsidian border border-borderline rounded font-mono text-[11px] text-sky-400 tabular-nums">
+            {scenarios.length}
+          </span>
+        </button>
         <button
           type="button"
           onClick={toggleHud}
