@@ -18,14 +18,29 @@ from typing import Any
 
 
 @dataclass
+class DemInfo:
+    """Procedencia del DEM usado para el perfil."""
+
+    product: str
+    resolution_m: float
+    source_url: str | None
+
+
+@dataclass
 class HorizonProfile:
-    """Elevación angular del horizonte por acimut (desde el norte, horario)."""
+    """Elevación angular del horizonte por acimut (desde el norte, horario). Contrato v1."""
 
     site_id: str
     lat: float
     lon: float
+    surface_height_m: float | None
+    observer_height_m: float
     azimuth_step_deg: float
     horizon_elevation_deg: list[float]
+    max_distance_km: float
+    dem: DemInfo
+    method_version: str
+    parent_site_id: str | None = None  # solo en variantes cercanas calculadas
 
 
 def open_dem(dem_path: Path) -> Any:

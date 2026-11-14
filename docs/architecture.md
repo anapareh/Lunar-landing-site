@@ -2,47 +2,59 @@
 
 ## Objetivo
 
-Permitir comparar rápidamente sitios y fechas de aterrizaje lunar según la elevación del
-Sol y la visibilidad de la Tierra, teniendo en cuenta el horizonte del relieve.
+Herramienta web estática para comparar rápidamente **escenarios de aterrizaje (sitio + fecha)**,
+con foco en el **polo sur lunar**. Muestra la posición del Sol y la Tierra respecto al
+**horizonte local del relieve** para evaluar la **energía** (elevación solar, horas de luz,
+tiempo hasta el ocaso) y la **comunicación directa con la Tierra** (ventanas de visibilidad,
+tiempo hasta que se pone la Tierra). Público: planificadores de misión, educadores y público general.
 
-## Decisiones
+Decisiones numeradas en [decisions.md](decisions.md). Formato de datos en [data-contract.md](data-contract.md).
 
-### 1. Precalcular efemérides (offline)
+## Flujo de datos
 
-- El pipeline Python calcula una única serie temporal con los vectores Sol y Tierra
-  **en el marco lunar fijo** (body-fixed), centrados en la Luna.
-- La web convierte esos vectores en elevación/acimut para cualquier lat/lon con
-  trigonometría sencilla. Así no hace falta recalcular efemérides por sitio.
-- Motivo: librerías como SPICE/Skyfield no corren en el navegador y el coste de
-  precalcular es bajo comparado con el beneficio.
-- Pendiente de decidir: marco exacto (p. ej. `MOON_ME` vs `MOON_PA`), rango temporal y
-  `step_minutes` (compromiso tamaño de JSON / resolución).
+```
+data-pipeline/ (local, Python)                              web/ (estática, navegador)
+──────────────────────────────                              ──────────────────────────
+raw/kernels ─▶ ephemeris.py (SpiceyPy, MOON_ME, LT+S) ─┐
+raw/lola    ─▶ dem.py + horizon.py (360 acimuts)    ─┼─▶ export.py ─▶ web/public/data/ ─▶ loaders.ts
+data/sites.json ─▶ sites.py (schema)                 ─┘                                    │
+                                                                                            ▼
+Horizons API ─▶ horizons_client.py (caché raw/) ─▶ validate_horizons.py      sunEarth.ts → horizon.ts → metrics.ts
+                                                   └─▶ docs/validation.md          │
+                                                                                    ▼
+                                                                            gráficas, mapa, tabla
+```
+
+## Decisiones clave
+
+### 1. Precalcular efemérides; convertir en el navegador
+- La posición del Sol y la Tierra en el marco lunar fijo **no depende del sitio**. El pipeline
+  calcula una serie temporal de vectores centro Luna → cuerpo (`ephemeris/<año>.json`).
+- La web convierte, para cualquier lat/lon: posición del observador → base local Este-Norte-Arriba →
+  elevación/acimut, interpolando entre muestras.
+- Vectores **con distancia**: la paralaje de la Tierra (≈ 0,26°) exige restar la posición del observador.
+- Marco `MOON_ME` (DE421) y corrección `LT+S`: el mismo modelo que usa Horizons para sitios
+  lunares, de modo que la validación compara lo mismo. La libración queda incluida con los kernels
+  de orientación PA/ME.
+- Sin atmósfera: sin refracción.
 
 ### 2. Horizonte por niveles
+1. **`dem`**: perfil de 360 acimuts precalculado desde LOLA para los sitios curados (y sus
+   variantes cercanas en el polo sur).
+2. **`geometric`**: horizonte esférico (0°) para las coordenadas libres.
 
-1. **Nivel 0 – geométrico**: horizonte a 0° (esfera). Disponible para cualquier punto.
-2. **Nivel 1 – perfil desde DEM**: 360 acimuts con la elevación angular del relieve,
-   calculados en el pipeline desde un DEM LOLA para los sitios de `sites.json`.
-3. (Futuro) mayor resolución o radio de búsqueda variable si el tiempo lo permite.
-
-La web usa el mejor nivel disponible para cada sitio y debe indicar cuál está aplicando.
+El nivel aplicado se muestra **siempre** (tabla, gráfica, resumen), no solo en un aviso.
 
 ### 3. Sin backend
+- Todo lo generado se commitea como JSON en `web/public/data/`; el despliegue no ejecuta el pipeline.
+- La web nunca llama a Horizons ni a otros servicios. Horizons solo se usa desde scripts locales
+  (validación y, como plan B, az/el de sitios concretos), con caché en `data-pipeline/raw/`.
 
-- Todo lo que genera el pipeline se escribe como JSON estático en `web/public/data/`.
-- La web es estática (Vite build) y se puede desplegar en cualquier hosting estático.
-- Consecuencia: los sitios con horizonte DEM son solo los precalculados; para puntos
-  arbitrarios se usa el horizonte geométrico.
-
-## Flujo
-
-```
-raw/ (LOLA, kernels) ─▶ ephemeris.py ─┐
-                       horizon.py   ─┼─▶ export.py ─▶ web/public/data/*.json ─▶ web
-data/sites.json ─────▶ sites.py     ─┘
-```
+### 4. Escenarios
+- La comparación trabaja con escenarios `{siteId, date}` (máx. 4), así que admite "mismo sitio, otra
+  fecha" (caso de un retraso de lanzamiento) y "otro sitio de la misma región".
 
 ## Validación
-
-`scripts/validate_horizons.py` comparará elevación/acimut del Sol y la Tierra para
-puntos de prueba contra la API de JPL Horizons.
+- `scripts/validate_horizons.py`: SPICE vs Horizons en 3–4 puntos de prueba → `docs/validation.md`.
+- `golden.json`: TS vs la referencia de Python desde SPICE (vitest).
+- Quickmap: coordenadas de los sitios (doble revisión) y comprobación puntual de los perfiles de horizonte.

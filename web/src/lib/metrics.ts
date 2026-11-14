@@ -28,8 +28,9 @@ export function earthVisibleHours(_series: SunEarthSeries, _profile: HorizonProf
   throw new Error("TODO: earthVisibleHours");
 }
 
-/** TODO: agrega todas las métricas de un sitio. */
+/** TODO: agrega todas las métricas de un escenario. */
 export function computeSiteMetrics(
+  _scenarioId: string,
   _siteId: string,
   _series: SunEarthSeries,
   _profile: HorizonProfile | null,

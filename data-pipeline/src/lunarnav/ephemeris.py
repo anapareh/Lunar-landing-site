@@ -21,9 +21,10 @@ Vector3 = tuple[float, float, float]
 
 @dataclass
 class EphemerisSeries:
-    """Serie temporal de vectores Sol/Tierra en el marco lunar fijo."""
+    """Serie temporal de vectores centro Luna -> Sol/Tierra en el marco lunar fijo (km). Contrato v1."""
 
-    frame: str
+    frame: str  # MOON_ME (D-003)
+    aberration_correction: str  # LT+S (D-003)
     start: datetime
     step_minutes: float
     sun: list[Vector3]

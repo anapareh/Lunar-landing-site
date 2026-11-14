@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lunarnav.local/schemas/sites.schema.json",
+  "title": "sites.json (contrato v1)",
+  "type": "object",
+  "required": ["contract_version", "sites"],
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": { "type": "string", "pattern": "^1\\.\\d+\\.\\d+$" },
+    "sites": { "type": "array", "items": { "$ref": "#/$defs/site" } }
+  },
+  "$defs": {
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "name", "mission", "agency", "category", "status", "location_kind",
+        "lat", "lon", "date", "sources", "verified", "verified_by", "verified_on", "notes"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "mission": { "type": ["string", "null"] },
+        "agency": { "type": ["string", "null"] },
+        "category": { "enum": ["apollo", "clps", "commercial", "other_agency", "artemis", "other"] },
+        "status": { "enum": ["landed", "planned", "candidate", "failed"] },
+        "location_kind": { "enum": ["landing_point", "planned_target", "region_center"] },
+        "lat": { "type": ["number", "null"], "minimum": -90, "maximum": 90 },
+        "lon": { "type": ["number", "null"], "minimum": -180, "maximum": 180 },
+        "date": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "kind", "precision"],
+          "properties": {
+            "value": { "type": ["string", "null"], "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$" },
+            "kind": { "enum": ["actual", "planned", null] },
+            "precision": { "enum": ["day", "month", "year", null] }
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "url"],
+            "properties": {
+              "label": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "pattern": "^https?://" }
+            }
+          }
+        },
+        "verified": { "type": "boolean" },
+        "verified_by": { "type": ["string", "null"] },
+        "verified_on": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "notes": { "type": ["string", "null"] }
+      },
+      "if": { "properties": { "verified": { "const": true } } },
+      "then": {
+        "properties": {
+          "lat": { "type": "number" },
+          "lon": { "type": "number" },
+          "sources": { "minItems": 1 },
+          "verified_by": { "type": "string", "minLength": 1 },
+          "verified_on": { "type": "string" }
+        }
+      }
+    }
+  }
+}

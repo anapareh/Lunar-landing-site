@@ -1,32 +1,56 @@
-[
-  {
-    "id": "artemis3-peak-near-shackleton",
-    "name": "Peak Near Shackleton",
-    "agency": "NASA",
-    "type": "artemis_iii_candidate_region",
-    "lat": null,
-    "lon": null,
-    "verified": false,
-    "notes": "TODO: verificar en Quickmap"
-  },
-  {
-    "id": "artemis3-connecting-ridge",
-    "name": "Connecting Ridge",
-    "agency": "NASA",
-    "type": "artemis_iii_candidate_region",
-    "lat": null,
-    "lon": null,
-    "verified": false,
-    "notes": "TODO: verificar en Quickmap"
-  },
-  {
-    "id": "artemis3-faustini-rim-a",
-    "name": "Faustini Rim A",
-    "agency": "NASA",
-    "type": "artemis_iii_candidate_region",
-    "lat": null,
-    "lon": null,
-    "verified": false,
-    "notes": "TODO: verificar en Quickmap"
-  }
-]
+{
+  "contract_version": "1.0.0",
+  "sites": [
+    {
+      "id": "artemis3-peak-near-shackleton",
+      "name": "Peak Near Shackleton",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": { "value": null, "kind": null, "precision": null },
+      "sources": [],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "TODO: verificar en Quickmap. Añadir fuente. Es una región: decidir el punto representativo."
+    },
+    {
+      "id": "artemis3-connecting-ridge",
+      "name": "Connecting Ridge",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": { "value": null, "kind": null, "precision": null },
+      "sources": [],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "TODO: verificar en Quickmap. Añadir fuente. Es una región: decidir el punto representativo."
+    },
+    {
+      "id": "artemis3-faustini-rim-a",
+      "name": "Faustini Rim A",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": { "value": null, "kind": null, "precision": null },
+      "sources": [],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "TODO: verificar en Quickmap. Añadir fuente. Es una región: decidir el punto representativo."
+    }
+  ]
+}
