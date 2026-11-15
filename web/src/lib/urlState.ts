@@ -1,7 +1,7 @@
 /**
  * Estado inicial desde la URL, para compartir un escenario o preparar la demo:
  *   ?lat=-89.5&lon=45&fecha=2026-11-20T12:00:00Z&modo=avanzado&vista=local
- * En móvil, `panel=sitios|condiciones` abre esa hoja inferior.
+ * En móvil, `panel=sitios|condiciones` abre esa hoja inferior. `sitio=<id>` selecciona un sitio de sites.json.
  * Valores inválidos o fuera de rango se ignoran.
  */
 export interface UrlState {
@@ -11,6 +11,7 @@ export interface UrlState {
   mode?: "simple" | "advanced";
   scene?: "globe" | "local";
   sheet?: "sites" | "cond";
+  siteId?: string;
 }
 
 const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?Z$/;
@@ -41,5 +42,7 @@ export function parseUrlState(search: string): UrlState {
   const panel = q.get("panel");
   if (panel === "sitios") out.sheet = "sites";
   if (panel === "condiciones") out.sheet = "cond";
+  const site = q.get("sitio");
+  if (site && /^[a-z0-9][a-z0-9-]*$/.test(site)) out.siteId = site;
   return out;
 }

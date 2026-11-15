@@ -449,8 +449,10 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       line.setAttribute("points", pts);
       line.style.opacity = (alpha * 0.85).toFixed(2);
     };
+    // Balizas: se etiquetan primero las más centradas; se omite la etiqueta que chocaría con otra
     const placeBeacons = () => {
       camDir.copy(camera.position).normalize();
+      const items: { label: HTMLElement; x: number; y: number; facing: number }[] = [];
       for (const b of s.beaconList) {
         const w = globe.localToWorld(b.tip.clone());
         const facing = w.clone().normalize().dot(camDir);
@@ -460,9 +462,24 @@ export default function LunarGlobe(props: LunarGlobeProps) {
           continue;
         }
         w.project(camera);
-        b.label.style.transform = `translate(${((w.x + 1) / 2) * mount.clientWidth}px, ${((1 - w.y) / 2) * mount.clientHeight}px) translate(-50%, -100%)`;
-        b.label.style.opacity = Math.min(1, (facing - 0.14) * 3.2).toFixed(2);
-        b.label.style.pointerEvents = "auto";
+        items.push({ label: b.label, x: ((w.x + 1) / 2) * mount.clientWidth, y: ((1 - w.y) / 2) * mount.clientHeight, facing });
+      }
+      items.sort((p, q) => q.facing - p.facing);
+      const placed: { l: number; r: number; t: number; b: number }[] = [];
+      for (const it of items) {
+        const lw = it.label.offsetWidth || 60;
+        const lh = it.label.offsetHeight || 16;
+        const box = { l: it.x - lw / 2 - 2, r: it.x + lw / 2 + 2, t: it.y - lh - 2, b: it.y + 2 };
+        const clash = placed.some((p) => box.l < p.r && box.r > p.l && box.t < p.b && box.b > p.t);
+        it.label.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -100%)`;
+        if (clash) {
+          it.label.style.opacity = "0";
+          it.label.style.pointerEvents = "none";
+          continue;
+        }
+        placed.push(box);
+        it.label.style.opacity = Math.min(1, (it.facing - 0.14) * 3.2).toFixed(2);
+        it.label.style.pointerEvents = "auto";
       }
     };
     const cardObserver = new ResizeObserver(() => {

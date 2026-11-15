@@ -13,6 +13,8 @@ describe("parseUrlState", () => {
   });
   it("lee el panel móvil", () => {
     expect(parseUrlState("?panel=condiciones")).toEqual({ sheet: "cond" });
+    expect(parseUrlState("?sitio=apollo-11")).toEqual({ siteId: "apollo-11" });
+    expect(parseUrlState("?sitio=../x")).toEqual({});
   });
   it("ignora valores fuera de rango o mal formados", () => {
     expect(parseUrlState("?lat=-95&lon=10&fecha=ayer&modo=x")).toEqual({});

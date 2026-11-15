@@ -1,5 +1,5 @@
 /**
- * Cabecera (maqueta "Selene"): identidad, coordenadas activas, origen de la efeméride,
+ * Cabecera (maqueta "Selene"; la app se llama Apollo Atlas): identidad, coordenadas activas, origen de la efeméride,
  * comparativa y modo Simple / Avanzado.
  */
 import { useAppStore, type AppMode } from "../../store/useAppStore";
@@ -18,7 +18,7 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
       type="button"
       onClick={() => setMode(m)}
       aria-pressed={mode === m}
-      className={`px-2 sm:px-3 py-1 rounded border transition-all ${
+      className={`px-1.5 sm:px-3 py-1 rounded border transition-all ${
         mode === m ? "bg-sky-500/20 text-sky-300 border-sky-500/50" : "text-steel hover:text-telemetry border-transparent"
       }`}
     >
@@ -27,12 +27,12 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
   );
 
   return (
-    <header className="relative z-20 pointer-events-auto console-panel rounded-md mx-2 sm:mx-3 mt-2 sm:mt-3 px-2.5 sm:px-3 py-1.5 sm:py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+    <header className="relative z-20 pointer-events-auto console-panel rounded-md mx-2 sm:mx-3 mt-2 sm:mt-3 px-2 sm:px-3 py-1.5 sm:py-2 flex flex-nowrap sm:flex-wrap items-center justify-between gap-2 shrink-0">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-200 to-slate-500 shrink-0" aria-hidden="true" />
+        <div className="max-[380px]:hidden w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-slate-200 to-slate-500 shrink-0" aria-hidden="true" />
         <div className="min-w-0">
-          <h1 className="text-sm font-semibold tracking-wide text-telemetry">
-            SELENE<span className="hidden sm:inline"> · Sitios de Alunizaje</span>
+          <h1 className="text-[13px] sm:text-sm font-semibold sm:tracking-wide text-telemetry whitespace-nowrap">
+            APOLLO ATLAS<span className="hidden sm:inline"> · Sitios de Alunizaje</span>
           </h1>
           <p className="hidden sm:block text-[10px] font-mono text-steel truncate">
             {mode === "simple"
@@ -42,7 +42,7 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {coordsLabel && <span className="hidden md:inline text-[10px] font-mono text-sky-400 tabular-nums">{coordsLabel}</span>}
         <span
           className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
@@ -56,7 +56,7 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
         <button
           type="button"
           onClick={() => setCompareOpen(true)}
-          className="btn-control px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5"
+          className="btn-control px-1.5 sm:px-2.5 py-1 rounded text-[11px] sm:text-xs font-medium flex items-center gap-1 sm:gap-1.5"
           aria-haspopup="dialog"
         >
           <span className="hidden sm:inline">Comparar</span>
@@ -65,7 +65,7 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
             {scenarios.length}
           </span>
         </button>
-        <div className="flex items-center text-xs font-medium rounded border border-borderline bg-obsidian p-0.5 gap-0.5" role="group" aria-label="Nivel de detalle">
+        <div className="flex items-center text-[11px] sm:text-xs font-medium rounded border border-borderline bg-obsidian p-0.5 gap-0.5" role="group" aria-label="Nivel de detalle">
           {modeBtn("simple", "Simple")}
           {modeBtn("advanced", "Avanzado")}
         </div>

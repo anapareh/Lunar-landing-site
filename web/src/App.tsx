@@ -13,7 +13,7 @@
  * Tiempo: la ventana es un día lunar desde la fecha elegida (se calcula una vez). `cursor` es el
  * instante mostrado dentro de ella; la simulación, la franja y "Mejor ventana" lo mueven.
  */
-import { Suspense, lazy, useDeferredValue, useMemo, useState } from "react";
+import { Suspense, lazy, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { DataStatusBanner } from "./components/common/DataStatusBanner";
 import { Toast } from "./components/common/Toast";
 import { CompareModal } from "./components/compare/CompareModal";
@@ -41,6 +41,8 @@ import { EARTH_RADIUS_KM, SUN_RADIUS_KM, applyHorizon } from "./lib/horizon";
 import { snapToGrid } from "./lib/horizonGrid";
 import { computeSiteMetrics } from "./lib/metrics";
 import { lunarPhase } from "./lib/phase";
+import { matchesFilter, type SiteFilter } from "./lib/siteFilters";
+import { parseUrlState } from "./lib/urlState";
 import { computeSunEarthSeries, interpolateBody, positionsAt } from "./lib/sunEarth";
 import { addLunarDays, parseUtc, toIsoUtc } from "./lib/time";
 import { useAppStore, type Coords } from "./store/useAppStore";
@@ -78,6 +80,7 @@ export default function App() {
   } = useAppStore();
   const mobile = useIsMobile();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [siteFilter, setSiteFilter] = useState<SiteFilter>("all");
   const adv = mode === "advanced";
   const coverage = ds.status === "ready" ? ds.coverage : null;
 
@@ -142,7 +145,14 @@ export default function App() {
 
   // Sitios verificados: balizas en el globo y condición actual (horizonte geométrico) en la lista
   const usableSites = useMemo(() => sites.filter(hasCoords), [sites]);
-  const beacons = useMemo<Beacon[]>(() => usableSites.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lon: s.lon })), [usableSites]);
+  // Balizas: sitios del filtro activo (el seleccionado ya lleva el marcador y la ficha)
+  const beacons = useMemo<Beacon[]>(
+    () =>
+      usableSites
+        .filter((s) => matchesFilter(s, siteFilter) && s.id !== selectedSiteId)
+        .map((s) => ({ id: s.id, name: s.name, lat: s.lat, lon: s.lon })),
+    [usableSites, siteFilter, selectedSiteId],
+  );
   const siteConditions = useMemo(() => {
     const out: Record<string, Condition> = {};
     if (!ephemeris || !now) return out;
@@ -183,6 +193,17 @@ export default function App() {
     requestGlobeView("site");
     closeSheet();
   };
+  // ?sitio=<id>: selecciona ese sitio cuando llega sites.json (una vez)
+  const urlSiteDone = useRef(false);
+  useEffect(() => {
+    if (urlSiteDone.current || !sitesLoaded) return;
+    urlSiteDone.current = true;
+    const id = parseUrlState(window.location.search).siteId;
+    const s = id ? usableSites.find((x) => x.id === id) : undefined;
+    if (s) selectSite(s);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cargar la lista
+  }, [sitesLoaded, usableSites]);
+
   const jumpBest = (iso: string) => {
     scrub(iso);
     notify(`Instante ajustado al inicio de la mejor ventana: ${formatUtc(iso)}`);
@@ -279,6 +300,8 @@ export default function App() {
               siteConditions={siteConditions}
               selectedSiteId={selectedSiteId}
               onSelectSite={selectSite}
+              filter={siteFilter}
+              onFilter={setSiteFilter}
               current={{ label: pointLabel, coords: evalCoords, condition }}
               coords={customCoords}
               onCoords={pickPoint}

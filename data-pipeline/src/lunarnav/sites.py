@@ -56,7 +56,9 @@ class Site:
 
 
 def normalize_lon(lon: float) -> float:
-    """Longitud este positiva en −180..180."""
+    """Longitud este positiva en −180..180 (sin tocar las que ya están en rango: evita ruido de coma flotante)."""
+    if -180.0 < lon <= 180.0:
+        return lon
     v = ((lon + 180.0) % 360.0) - 180.0
     return 180.0 if v == -180.0 and lon > 0 else v
 
