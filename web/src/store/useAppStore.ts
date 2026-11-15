@@ -14,7 +14,7 @@ import { setFormatLocale } from "../lib/format";
 /** Estado inicial opcional desde la URL (?lat=&lon=&fecha=&modo=&vista=). */
 const initial = parseUrlState(typeof window !== "undefined" ? window.location.search : "");
 
-const LANG_KEY = "apollo-atlas-lang";
+const LANG_KEY = "artemis-atlas-lang";
 /** Idioma inicial: URL (?lang=) → recordado en el navegador → español. */
 function initialLang(): Lang {
   if (initial.lang) return initial.lang;

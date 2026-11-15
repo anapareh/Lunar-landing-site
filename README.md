@@ -1,14 +1,14 @@
-# Apollo Atlas · Lunar Landing Site Navigator
+# Artemis Atlas · Lunar Landing Site Navigator
 
 NASA Space Apps Challenge 2026 · challenge **"Lunar Landing Site Navigator"** · team **HerTech**.
 
-**Live app:** _pending deployment (Vercel)_ · UI in **English and Spanish** (button in the header, or `?lang=en`).
+**Live site:** _add the Vercel URL here_ · landing page at `/`, app at `/app/` · UI in **English and Spanish** (button in the header, or `?lang=en`).
 
 ---
 
 ## English summary
 
-Apollo Atlas is a static web app to compare lunar landing sites and dates by **sunlight** (power)
+Artemis Atlas is a static web app to compare lunar landing sites and dates by **sunlight** (power)
 and **direct line of sight to Earth** (communications), taking the **real local horizon** into account
 at the lunar south pole.
 
@@ -50,9 +50,12 @@ Herramienta web estática para comparar sitios y fechas de alunizaje según la *
 
 ## Parámetros de URL
 
+La portada está en `/` y la app en `/app/`. Parámetros de la app:
+
+
 | Parámetro | Ejemplo | Efecto |
 |---|---|---|
-| `sitio` | `?sitio=apollo-11` | Selecciona un sitio de `sites.json` |
+| `sitio` | `/app/?sitio=apollo-11` | Selecciona un sitio de `sites.json` |
 | `lat`, `lon` | `?lat=-89.5&lon=45` | Coordenadas (lat planetocéntrica, lon este +) |
 | `fecha` | `?fecha=1969-07-20T00:00Z` | Fecha de referencia (UTC) |
 | `modo` | `?modo=avanzado` | `simple` o `avanzado` |
@@ -83,7 +86,7 @@ Requisitos: Python 3.11+, Node 20+.
 # Web (los datos ya están generados en web/public/data/)
 cd web
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # portada: http://localhost:5173 · app: http://localhost:5173/app/
 npm test && npm run build
 
 # Pipeline de datos (solo para regenerar)
@@ -101,7 +104,7 @@ pytest
 
 ## Despliegue
 
-Vercel: importar el repositorio, **Root Directory `web`**, framework Vite. Cada push a `main` vuelve a desplegar.
+Vercel: importar el repositorio, **Root Directory `web`**, framework Vite. Cada push a `main` vuelve a desplegar. El build genera dos páginas: `dist/index.html` (portada) y `dist/app/index.html` (app).
 
 ## Créditos
 

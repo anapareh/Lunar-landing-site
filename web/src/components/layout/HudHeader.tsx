@@ -1,5 +1,5 @@
 /**
- * Cabecera (maqueta "Selene"; la app se llama Apollo Atlas): identidad, coordenadas activas, origen de la efeméride,
+ * Cabecera (maqueta "Selene"; la app se llama Artemis Atlas): identidad, coordenadas activas, origen de la efeméride,
  * comparativa y modo Simple / Avanzado.
  */
 import { useAppStore, type AppMode } from "../../store/useAppStore";
@@ -35,7 +35,7 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
         <div className="max-[380px]:hidden w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-slate-200 to-slate-500 shrink-0" aria-hidden="true" />
         <div className="min-w-0">
           <h1 className="text-[13px] sm:text-sm font-semibold sm:tracking-wide text-telemetry whitespace-nowrap">
-            APOLLO ATLAS<span className="hidden sm:inline"> · {h.title}</span>
+            ARTEMIS ATLAS<span className="hidden sm:inline"> · {h.title}</span>
           </h1>
           <p className="hidden sm:block text-[10px] font-mono text-steel truncate">
             {mode === "simple" ? h.subtitleSimple : h.subtitleAdvanced}
