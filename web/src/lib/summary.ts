@@ -3,6 +3,8 @@
  * Solo reformula valores calculados en lib/metrics.ts; no añade cifras ni valoraciones.
  */
 import type { SiteMetrics } from "../types";
+import type { Dict } from "../i18n/es";
+import es from "../i18n/es";
 import { formatDuration, formatPercent } from "./format";
 
 export interface SiteSummary {
@@ -11,29 +13,29 @@ export interface SiteSummary {
   earth: string;
 }
 
-export function summarize(m: SiteMetrics): SiteSummary {
+export function summarize(m: SiteMetrics, t: Dict["summary"] = es.summary): SiteSummary {
   const { sun, earth } = m;
   const sunText = sun.visibleNow
     ? sun.hoursToSet === null
-      ? "Es de día y el Sol no se pone en todo el periodo."
-      : `Es de día: el Sol se pone en ${formatDuration(sun.hoursToSet)}.`
+      ? t.dayNoSet
+      : t.daySet(formatDuration(sun.hoursToSet))
     : sun.hoursToRise === null
-      ? "Es de noche y el Sol no sale en todo el periodo."
-      : `Es de noche: amanece en ${formatDuration(sun.hoursToRise)}.`;
+      ? t.nightNoRise
+      : t.nightRise(formatDuration(sun.hoursToRise));
 
   const share = m.windowHours > 0 ? sun.visibleHours / m.windowHours : 0;
   const light =
     sun.visibleHours <= 0
-      ? "No habrá luz solar en el próximo día lunar."
-      : `Habrá sol el ${formatPercent(share)} del próximo día lunar.`;
+      ? t.noLight
+      : t.light(formatPercent(share));
 
   const earthText = earth.visibleNow
     ? earth.hoursToSet === null
-      ? "La Tierra se ve todo el periodo: enlace directo posible en todo momento."
-      : `La Tierra se ve ahora (enlace directo posible) y se pone en ${formatDuration(earth.hoursToSet)}.`
+      ? t.earthAlways
+      : t.earthSets(formatDuration(earth.hoursToSet))
     : earth.hoursToRise === null
-      ? "La Tierra no se ve en todo el periodo: sin enlace directo; haría falta un satélite de retransmisión."
-      : `La Tierra no se ve ahora: sale en ${formatDuration(earth.hoursToRise)}.`;
+      ? t.earthNever
+      : t.earthRises(formatDuration(earth.hoursToRise));
 
   return { sun: sunText, light, earth: earthText };
 }

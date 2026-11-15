@@ -4,7 +4,7 @@
  * Destaca el mejor valor en las filas donde "más es mejor" (horas de luz, de Tierra visible y
  * elevación solar máxima). Acciones por columna: ver en el globo, +1 día lunar, quitar.
  */
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { Scenario } from "../../types";
 import type { Dataset } from "../../hooks/useEphemeris";
 import { useScenarioMetrics, type ScenarioResult } from "../../hooks/useScenarioMetrics";
@@ -16,6 +16,7 @@ import { MAX_SCENARIOS, useAppStore } from "../../store/useAppStore";
 import { HorizonLevelBadge } from "../common/HorizonLevelBadge";
 import { formatLatLon } from "../sites/FreeCoordinatesForm";
 import { VisibilityStrip } from "./VisibilityStrip";
+import { useT, type Dict } from "../../i18n";
 
 type Ok = Extract<ScenarioResult, { status: "ok" }>;
 
@@ -28,63 +29,67 @@ interface RowDef {
 }
 
 const signed = (d: number) => `${d >= 0 ? "+" : ""}${formatDeg(d)}`;
-const countdown = (visible: boolean, toSet: number | null, toRise: number | null, set: string, rise: string) => {
-  const h = visible ? toSet : toRise;
-  return h === null ? (visible ? "no se pone en todo el periodo" : "no sale en todo el periodo") : `${visible ? set : rise} ${formatDuration(h)}`;
-};
 
-const ROWS: RowDef[] = [
-  {
-    label: "En resumen",
-    render: (r) => {
-      const t = summarize(r.metrics);
-      return (
-        <span className="font-sans text-[11px] text-slate-200 leading-snug whitespace-normal block">
-          {t.sun} {t.light} {t.earth}
-        </span>
-      );
+/** Filas de la tabla (textos del idioma activo). */
+function buildRows(t: Dict): RowDef[] {
+  const c = t.compare;
+  const countdown = (visible: boolean, toSet: number | null, toRise: number | null, set: (d: string) => string, rise: (d: string) => string) => {
+    const h = visible ? toSet : toRise;
+    return h === null ? (visible ? c.neverSets : c.neverRises) : (visible ? set : rise)(formatDuration(h));
+  };
+  return [
+    {
+      label: c.rows.summary,
+      render: (r) => {
+        const x = summarize(r.metrics, t.summary);
+        return (
+          <span className="font-sans text-[11px] text-slate-200 leading-snug whitespace-normal block">
+            {x.sun} {x.light} {x.earth}
+          </span>
+        );
+      },
     },
-  },
-  { label: "Relieve usado", render: (r) => <HorizonLevelBadge level={r.metrics.horizonLevel} /> },
-  {
-    label: "Los 29,5 días (luz / Tierra)",
-    render: (r, s) => <VisibilityStrip sun={r.sun} earth={r.earth} label={`Luz y visibilidad de la Tierra durante el día lunar de ${s.label}`} />,
-  },
-  { group: "sun", label: "Altura del Sol al aterrizar", render: (r) => signed(r.metrics.sun.elevationNowDeg) },
-  { group: "sun", label: "Parte del Sol visible al aterrizar", render: (r) => formatPercent(r.metrics.sun.visibleFractionNow) },
-  {
-    group: "sun",
-    label: "Próximo ocaso o amanecer",
-    render: (r) => countdown(r.metrics.sun.visibleNow, r.metrics.sun.hoursToSet, r.metrics.sun.hoursToRise, "se pone en", "amanece en"),
-  },
-  {
-    group: "sun",
-    label: "Horas de sol en los 29,5 días",
-    render: (r) => `${formatHours(r.metrics.sun.visibleHours)} (${formatPercent(r.metrics.sun.visibleHours / r.metrics.windowHours)})`,
-    num: (r) => r.metrics.sun.visibleHours,
-  },
-  { group: "sun", label: "Altura máxima del Sol", render: (r) => signed(r.metrics.sun.maxElevationDeg), num: (r) => r.metrics.sun.maxElevationDeg },
-  {
-    group: "earth",
-    label: "Tierra al aterrizar",
-    render: (r) => (
-      <span className={r.metrics.earth.visibleNow ? "text-sky-400" : "text-red-400"}>
-        {signed(r.metrics.earth.elevationNowDeg)} · {r.metrics.earth.visibleNow ? "visible: enlace directo" : "oculta: sin enlace directo"}
-      </span>
-    ),
-  },
-  {
-    group: "earth",
-    label: "Cuándo se pone o sale la Tierra",
-    render: (r) => countdown(r.metrics.earth.visibleNow, r.metrics.earth.hoursToSet, r.metrics.earth.hoursToRise, "se pone en", "sale en"),
-  },
-  {
-    group: "earth",
-    label: "Horas con la Tierra a la vista",
-    render: (r) => `${formatHours(r.metrics.earth.visibleHours)} (${formatPercent(r.metrics.earth.visibleHours / r.metrics.windowHours)})`,
-    num: (r) => r.metrics.earth.visibleHours,
-  },
-];
+    { label: c.rows.horizon, render: (r) => <HorizonLevelBadge level={r.metrics.horizonLevel} /> },
+    {
+      label: c.rows.cycle,
+      render: (r, s) => <VisibilityStrip sun={r.sun} earth={r.earth} label={c.stripAria(s.label)} />,
+    },
+    { group: "sun", label: c.rows.sunNow, render: (r) => signed(r.metrics.sun.elevationNowDeg) },
+    { group: "sun", label: c.rows.diskNow, render: (r) => formatPercent(r.metrics.sun.visibleFractionNow) },
+    {
+      group: "sun",
+      label: c.rows.sunNext,
+      render: (r) => countdown(r.metrics.sun.visibleNow, r.metrics.sun.hoursToSet, r.metrics.sun.hoursToRise, c.sunSets, c.sunRises),
+    },
+    {
+      group: "sun",
+      label: c.rows.sunHours,
+      render: (r) => `${formatHours(r.metrics.sun.visibleHours)} (${formatPercent(r.metrics.sun.visibleHours / r.metrics.windowHours)})`,
+      num: (r) => r.metrics.sun.visibleHours,
+    },
+    { group: "sun", label: c.rows.sunMax, render: (r) => signed(r.metrics.sun.maxElevationDeg), num: (r) => r.metrics.sun.maxElevationDeg },
+    {
+      group: "earth",
+      label: c.rows.earthNow,
+      render: (r) => (
+        <span className={r.metrics.earth.visibleNow ? "text-sky-400" : "text-red-400"}>
+          {signed(r.metrics.earth.elevationNowDeg)} · {r.metrics.earth.visibleNow ? c.earthVisible : c.earthHidden}
+        </span>
+      ),
+    },
+    {
+      group: "earth",
+      label: c.rows.earthNext,
+      render: (r) => countdown(r.metrics.earth.visibleNow, r.metrics.earth.hoursToSet, r.metrics.earth.hoursToRise, c.earthSets, c.earthRises),
+    },
+    {
+      group: "earth",
+      label: c.rows.earthHours,
+      render: (r) => `${formatHours(r.metrics.earth.visibleHours)} (${formatPercent(r.metrics.earth.visibleHours / r.metrics.windowHours)})`,
+      num: (r) => r.metrics.earth.visibleHours,
+    },
+  ];
+}
 
 export interface CompareModalProps {
   ds: Dataset;
@@ -98,6 +103,9 @@ export function CompareModal({ ds, grid = null, onLoad }: CompareModalProps) {
   const { compareOpen, setCompareOpen, scenarios, removeScenario, addScenario, notify } = useAppStore();
   const results = useScenarioMetrics(ds, scenarios, compareOpen, grid);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const t = useT();
+  const c = t.compare;
+  const rows = useMemo(() => buildRows(t), [t]);
 
   useEffect(() => {
     if (!compareOpen) return;
@@ -111,7 +119,7 @@ export function CompareModal({ ds, grid = null, onLoad }: CompareModalProps) {
 
   const addLater = (s: Scenario) => {
     const r = addScenario(shiftScenario(s, 1));
-    notify(r === "added" ? "Añadido el mismo sitio un día lunar después" : r === "full" ? `Máximo ${MAX_SCENARIOS} escenarios` : "Ese escenario ya está en la tabla");
+    notify(r === "added" ? t.toasts.addedLater : r === "full" ? t.toasts.max(MAX_SCENARIOS) : t.toasts.already);
   };
 
   const okAt = (s: Scenario): Ok | null => {
@@ -128,57 +136,56 @@ export function CompareModal({ ds, grid = null, onLoad }: CompareModalProps) {
         <div className="p-4 border-b border-borderline flex items-center justify-between gap-3 bg-panel">
           <div>
             <h2 id="compare-title" className="text-sm sm:text-base font-semibold text-telemetry">
-              Comparativa de escenarios de alunizaje
+              {c.title}
             </h2>
             <p className="text-xs text-steel mt-0.5">
-              Cada columna es un lugar y una fecha de aterrizaje; se simulan los 29,5 días siguientes (un día lunar). ▲ = mejor valor de la fila.
+              {c.subtitle}
             </p>
           </div>
           <button ref={closeRef} type="button" onClick={() => setCompareOpen(false)} className="btn-control px-2.5 py-1 rounded text-xs font-medium">
-            Cerrar ✕
+            {c.close}
           </button>
         </div>
 
         <div className="p-4 overflow-auto flex-1">
           {scenarios.length === 0 ? (
             <p className="text-sm text-steel">
-              Aún no hay escenarios. Usa <strong className="text-telemetry">+ Comparar</strong> en el panel de sitios para añadir el
-              punto y la fecha actuales (hasta {MAX_SCENARIOS}).
+              {c.emptyBefore} <strong className="text-telemetry">{c.emptyButton}</strong> {c.emptyAfter(MAX_SCENARIOS)}
             </p>
           ) : (
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-borderline align-top">
-                  <th scope="col" className="py-2.5 px-3 w-44 text-steel font-mono text-[11px] font-normal">PARÁMETRO</th>
+                  <th scope="col" className="py-2.5 px-3 w-44 text-steel font-mono text-[11px] font-normal">{c.parameter}</th>
                   {scenarios.map((s, i) => (
                     <th key={s.id} scope="col" className="py-2.5 px-3 min-w-[190px] font-normal">
-                      <div className="text-[10px] font-mono text-steel">ESCENARIO {String(i + 1).padStart(2, "0")}</div>
+                      <div className="text-[10px] font-mono text-steel">{c.scenario(String(i + 1).padStart(2, "0"))}</div>
                       <div className="text-telemetry font-semibold">{s.label}</div>
                       <div className="font-mono text-sky-400 tabular-nums">{formatLatLon(s)}</div>
                       <div className="font-mono text-steel tabular-nums">{formatUtc(s.date)}</div>
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         <button type="button" onClick={() => onLoad(s)} className="btn-control px-1.5 py-0.5 rounded text-[11px]">
-                          Ver
+                          {c.view}
                         </button>
-                        <button type="button" onClick={() => addLater(s)} className="btn-control px-1.5 py-0.5 rounded text-[11px]" title="Mismo sitio, un día lunar más tarde">
-                          +1 día lunar
+                        <button type="button" onClick={() => addLater(s)} className="btn-control px-1.5 py-0.5 rounded text-[11px]" title={c.plusLunarTitle}>
+                          {c.plusLunar}
                         </button>
                         <button
                           type="button"
                           onClick={() => removeScenario(s.id)}
                           className="btn-control px-1.5 py-0.5 rounded text-[11px] !text-red-300"
-                          aria-label={`Quitar escenario ${i + 1}`}
+                          aria-label={c.remove(i + 1)}
                         >
                           ✕
                         </button>
                       </div>
-                      {okAt(s)?.truncated && <div className="text-[10px] text-amber-400 mt-1">Ventana recortada por los datos</div>}
+                      {okAt(s)?.truncated && <div className="text-[10px] text-amber-400 mt-1">{c.truncated}</div>}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-borderline/70">
-                {ROWS.map((row) => {
+                {rows.map((row) => {
                   const best = row.num ? bestIndices(scenarios.map((s) => (okAt(s) ? row.num!(okAt(s)!) : null))) : [];
                   return (
                     <tr key={row.label} className="hover:bg-panel/50">
@@ -193,13 +200,13 @@ export function CompareModal({ ds, grid = null, onLoad }: CompareModalProps) {
                         return (
                           <td key={s.id} className={`py-2 px-3 font-mono tabular-nums ${isBest ? "text-emerald-400 font-semibold" : "text-telemetry"}`}>
                             {!r ? (
-                              <span className="text-steel">Calculando…</span>
+                              <span className="text-steel">{c.calculating}</span>
                             ) : r.status === "error" ? (
                               <span className="text-red-300">{r.message}</span>
                             ) : (
                               <>
                                 {row.render(r, s)}
-                                {isBest && <span className="ml-1 text-emerald-400" aria-label="(mejor)">▲</span>}
+                                {isBest && <span className="ml-1 text-emerald-400" aria-label={c.best}>▲</span>}
                               </>
                             )}
                           </td>
@@ -214,9 +221,9 @@ export function CompareModal({ ds, grid = null, onLoad }: CompareModalProps) {
         </div>
 
         <div className="p-3 border-t border-borderline bg-obsidian/80 text-xs text-steel">
-          <span className="inline-flex items-center gap-1 mr-3"><i className="w-3 h-2 inline-block bg-amber-500/80" aria-hidden="true" /> luz solar</span>
-          <span className="inline-flex items-center gap-1 mr-3"><i className="w-3 h-2 inline-block bg-sky-600" aria-hidden="true" /> Tierra a la vista</span>
-          Polo sur (85°–90° S): relieve LOLA del nodo de la rejilla. Resto: Luna lisa; el relieve real puede cambiar las horas de luz y de Tierra visible.
+          <span className="inline-flex items-center gap-1 mr-3"><i className="w-3 h-2 inline-block bg-amber-500/80" aria-hidden="true" /> {c.legendSun}</span>
+          <span className="inline-flex items-center gap-1 mr-3"><i className="w-3 h-2 inline-block bg-sky-600" aria-hidden="true" /> {c.legendEarth}</span>
+          {c.footer}
         </div>
       </div>
     </div>

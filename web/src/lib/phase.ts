@@ -27,6 +27,8 @@ export interface LunarPhase {
   /** Fracción del disco iluminada vista desde la Tierra (0..1). */
   illuminated: number;
   name: (typeof PHASE_NAMES)[number];
+  /** Índice 0..7 de la fase (para el nombre traducido: dict.phases[index]). */
+  index: number;
 }
 
 export function lunarPhase(sun: Vector3, earth: Vector3): LunarPhase {
@@ -35,5 +37,5 @@ export function lunarPhase(sun: Vector3, earth: Vector3): LunarPhase {
   const delta = ((((ds + 180) % 360) + 360) % 360) - 180;
   const cycle = ((((180 - delta) / 360) % 1) + 1) % 1;
   const idx = Math.floor(((cycle + 1 / 16) % 1) * 8) % 8;
-  return { cycle, illuminated: (1 + Math.cos(i)) / 2, name: PHASE_NAMES[idx] };
+  return { cycle, illuminated: (1 + Math.cos(i)) / 2, name: PHASE_NAMES[idx], index: idx };
 }

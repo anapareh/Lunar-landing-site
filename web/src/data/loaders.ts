@@ -10,10 +10,13 @@ import type { Ephemeris, HorizonGridMeta, HorizonProfile, Manifest, SitesFile } 
 import type { HorizonGrid } from "../lib/horizonGrid";
 import { addLunarDays, fractionalIndex, parseUtc, toIsoUtc } from "../lib/time";
 import { makeSyntheticEphemeris } from "./fixtures/syntheticEphemeris";
+import { mergeRanges, type CoverageRange } from "../lib/coverage";
 
 export interface Coverage {
   start: string;
   end: string;
+  /** Tramos continuos (los años sin efeméride son huecos). */
+  ranges: CoverageRange[];
 }
 
 function dataUrl(path: string): string {
@@ -36,7 +39,9 @@ export function loadManifest(): Promise<Manifest | null> {
 export function manifestCoverage(manifest: Manifest): Coverage | null {
   if (manifest.ephemeris.length === 0) return null;
   const sorted = [...manifest.ephemeris].sort((a, b) => parseUtc(a.start) - parseUtc(b.start));
-  return { start: sorted[0].start, end: sorted[sorted.length - 1].end };
+  // Años consecutivos: el siguiente empieza una muestra (1 h) después del final del anterior
+  const ranges = mergeRanges(sorted.map((e) => ({ start: e.start, end: e.end })), 2 * 3_600_000);
+  return { start: sorted[0].start, end: sorted[sorted.length - 1].end, ranges };
 }
 
 const ephemerisCache = new Map<string, Promise<Ephemeris>>();
@@ -118,5 +123,5 @@ export function syntheticDataset(nowMs: number = Date.now()): { ephemeris: Ephem
   const start = addLunarDays(today, -1);
   const ephemeris = makeSyntheticEphemeris({ start, stepMinutes: 60, count: Math.ceil(4 * 29.530588853 * 24) + 1 });
   const end = toIsoUtc(parseUtc(start) + (ephemeris.count - 1) * 3_600_000);
-  return { ephemeris, coverage: { start, end } };
+  return { ephemeris, coverage: { start, end, ranges: [{ start, end }] } };
 }

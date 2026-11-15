@@ -16,6 +16,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { HorizonProfile } from "../../types";
 import { horizonElevationAt } from "../../lib/horizon";
+import { useT } from "../../i18n";
 
 export interface SkyBody {
   az: number;
@@ -90,6 +91,7 @@ const earthMaterial = () =>
   });
 
 export default function LocalHorizonView({ profile, sun, earth, sunVisible }: LocalHorizonViewProps) {
+  const t = useT();
   const mountRef = useRef<HTMLDivElement>(null);
   const api = useRef<{
     setProfile: (p: HorizonProfile | null) => void;
@@ -244,7 +246,7 @@ export default function LocalHorizonView({ profile, sun, earth, sunVisible }: Lo
       camera.position.set(0, 0, 0);
       camera.lookAt(dirOf(look.yaw / DEG, look.pitch / DEG));
       renderer.render(scene, camera);
-      for (const [key, az] of [["N", 0], ["E", 90], ["S", 180], ["O", 270]] as const) {
+      for (const [key, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]] as const) {
         place(key, dirOf(az, horizonElevationAt(prof, az) + 0.4).multiplyScalar(R));
       }
       place("sun", bodies.sun ? sunMesh.position : null);
@@ -290,18 +292,18 @@ export default function LocalHorizonView({ profile, sun, earth, sunVisible }: Lo
       ref={mountRef}
       className="relative w-full h-full cursor-grab active:cursor-grabbing touch-none"
       role="img"
-      aria-label={`Vista desde la superficie: horizonte ${profile ? "con relieve LOLA" : "geométrico"}, con el Sol y la Tierra en su posición y tamaño angular reales. Arrastra para mirar alrededor y usa la rueda para acercar.`}
+      aria-label={t.local.aria(!!profile)}
     >
-      {(["N", "E", "S", "O"] as const).map((k) => (
+      {(["N", "E", "S", "W"] as const).map((k) => (
         <span key={k} ref={(n) => { labels.current[k] = n; }} className={`${lab} text-sky-300`} hidden>
-          {k}
+          {t.local.cardinals[k]}
         </span>
       ))}
       <span ref={(n) => { labels.current.sun = n; }} className={`${lab} text-amber-300`} hidden>
-        Sol
+        {t.local.sun}
       </span>
       <span ref={(n) => { labels.current.earth = n; }} className={`${lab} text-sky-300`} hidden>
-        Tierra
+        {t.local.earth}
       </span>
     </div>
   );

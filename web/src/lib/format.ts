@@ -1,34 +1,51 @@
 /**
- * Formato de números, ángulos, duraciones y fechas para la interfaz (es-ES, siempre UTC).
+ * Formato de números, ángulos, duraciones y fechas para la interfaz (siempre UTC).
+ * El locale sigue al idioma de la interfaz (es-ES por defecto, en-GB en inglés): `setFormatLocale`.
  */
 
-const nf1 = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const nf0 = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
+type Lang = "es" | "en";
 
-const dateTimeUtc = new Intl.DateTimeFormat("es-ES", {
-  timeZone: "UTC",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+let lang: Lang = "es";
+let nf1 = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+let nf0 = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
+let dateTimeUtc = new Intl.DateTimeFormat("es-ES", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+let dayMonthUtc = new Intl.DateTimeFormat("es-ES", { timeZone: "UTC", day: "numeric", month: "short" });
+let dateUtc = new Intl.DateTimeFormat("es-ES", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+let shortDateTimeUtc = new Intl.DateTimeFormat("es-ES", { timeZone: "UTC", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-const dayMonthUtc = new Intl.DateTimeFormat("es-ES", { timeZone: "UTC", day: "numeric", month: "short" });
+/** Cambia el locale de todos los formatos (lo llama el store al cambiar de idioma). */
+export function setFormatLocale(next: Lang): void {
+  lang = next;
+  const loc = next === "en" ? "en-GB" : "es-ES";
+  nf1 = new Intl.NumberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
+  dateTimeUtc = new Intl.DateTimeFormat(loc, { timeZone: "UTC", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  dayMonthUtc = new Intl.DateTimeFormat(loc, { timeZone: "UTC", day: "numeric", month: "short" });
+  dateUtc = new Intl.DateTimeFormat(loc, { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+  shortDateTimeUtc = new Intl.DateTimeFormat(loc, { timeZone: "UTC", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
 
-/** 12,3° */
+/** Locale de Intl activo ("es-ES" | "en-GB"). */
+export const currentLocale = () => (lang === "en" ? "en-GB" : "es-ES");
+
+/** 12,3° (es) · 12.3° (en) */
 export function formatDeg(deg: number): string {
   return `${nf1.format(deg)}°`;
 }
 
-/** 0,37 → "37 %" */
+/** 0,37 → "37 %" (es) · "37%" (en) */
 export function formatPercent(fraction: number): string {
-  return `${nf0.format(fraction * 100)} %`;
+  return lang === "en" ? `${nf0.format(fraction * 100)}%` : `${nf0.format(fraction * 100)} %`;
 }
 
 /** 354,3 h */
 export function formatHours(hours: number): string {
   return `${nf1.format(hours)} h`;
+}
+
+/** Número con un decimal según el locale ("1,0" / "1.0"). */
+export function formatNumber1(v: number): string {
+  return nf1.format(v);
 }
 
 /** Duración legible: "3 d 4 h", "5 h 12 min", "12 min", "< 1 min"; null → "—". */
@@ -53,4 +70,14 @@ export function formatUtc(msOrIso: number | string): string {
 /** "14 nov" (para ejes) */
 export function formatDayMonth(ms: number): string {
   return dayMonthUtc.format(new Date(ms));
+}
+
+/** "20 jul 1969" */
+export function formatDate(msOrIso: number | string): string {
+  return dateUtc.format(new Date(msOrIso));
+}
+
+/** "20 jul, 00:00" */
+export function formatShortDateTime(msOrIso: number | string): string {
+  return shortDateTimeUtc.format(new Date(msOrIso));
 }

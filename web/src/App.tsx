@@ -35,17 +35,19 @@ import { hasCoords, useSites } from "./hooks/useSites";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { makeScenario } from "./lib/compare";
 import { conditionOf, type Condition } from "./lib/conditions";
-import { formatUtc } from "./lib/format";
+import { formatDate, formatNumber1, formatUtc } from "./lib/format";
 import { subPoint } from "./lib/geo";
 import { EARTH_RADIUS_KM, SUN_RADIUS_KM, applyHorizon } from "./lib/horizon";
 import { snapToGrid } from "./lib/horizonGrid";
 import { computeSiteMetrics } from "./lib/metrics";
 import { lunarPhase } from "./lib/phase";
+import { rangeContaining, snapToCoverage } from "./lib/coverage";
 import { matchesFilter, type SiteFilter } from "./lib/siteFilters";
 import { parseUrlState } from "./lib/urlState";
 import { computeSunEarthSeries, interpolateBody, positionsAt } from "./lib/sunEarth";
 import { addLunarDays, parseUtc, toIsoUtc } from "./lib/time";
 import { useAppStore, type Coords } from "./store/useAppStore";
+import { useT } from "./i18n";
 import type { HorizonSample, Scenario, Site } from "./types";
 
 // three.js es pesado: el globo y la vista local se descargan aparte, después de la primera pintura.
@@ -79,17 +81,33 @@ export default function App() {
     addScenario, setCompareOpen, notify, sheet, toggleSheet, closeSheet,
   } = useAppStore();
   const mobile = useIsMobile();
+  const t = useT();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [siteFilter, setSiteFilter] = useState<SiteFilter>("all");
   const adv = mode === "advanced";
   const coverage = ds.status === "ready" ? ds.coverage : null;
 
-  const at = coverage ? clampIso(date ?? toIsoUtc(Math.floor(Date.now() / 60_000) * 60_000), coverage.start, coverage.end) : null;
-  const windowEnd = coverage && at ? clampIso(addLunarDays(at, 1), at, coverage.end) : null;
-  const truncated = coverage && at && windowEnd ? parseUtc(windowEnd) < parseUtc(addLunarDays(at, 1)) - 60_000 : false;
+  // Fecha de referencia dentro de un tramo con efeméride (hay huecos entre años)
+  const requested = coverage ? clampIso(date ?? toIsoUtc(Math.floor(Date.now() / 60_000) * 60_000), coverage.start, coverage.end) : null;
+  const at = coverage && requested ? snapToCoverage(coverage.ranges, requested) : null;
+  const range = coverage && at ? rangeContaining(coverage.ranges, at) : null;
+  const windowEnd = range && at ? clampIso(addLunarDays(at, 1), at, range.end) : null;
+  const truncated = at && windowEnd ? parseUtc(windowEnd) < parseUtc(addLunarDays(at, 1)) - 60_000 : false;
   const now = at && windowEnd ? clampIso(cursor ?? at, at, windowEnd) : null;
 
-  useSimulation(at, windowEnd, coverage?.end ?? null);
+  useSimulation(at, windowEnd, range?.end ?? null);
+
+  // Fecha elegida en un año sin efeméride: se lleva al tramo más cercano (con un día lunar completo) y se avisa
+  useEffect(() => {
+    if (!coverage || !date || rangeContaining(coverage.ranges, date)) return;
+    const snapped = snapToCoverage(coverage.ranges, date);
+    const r = rangeContaining(coverage.ranges, snapped);
+    const lunarMs = parseUtc(addLunarDays(snapped, 1)) - parseUtc(snapped);
+    const start = r && parseUtc(snapped) === parseUtc(r.end) ? toIsoUtc(Math.max(parseUtc(r.start), parseUtc(r.end) - lunarMs)) : snapped;
+    setDate(start);
+    notify(t.toasts.noEphemeris(formatUtc(start)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, coverage]);
   const { ephemeris, error: loadError } = useWindowEphemeris(ds, at, windowEnd);
 
   // Horizonte LOLA en el polo sur: se evalúa el nodo de la rejilla más cercano (sin interpolar)
@@ -99,7 +117,7 @@ export default function App() {
   const profile = snap?.profile ?? null;
 
   const selectedSite = sites.find((s) => s.id === selectedSiteId) ?? null;
-  const pointLabel = selectedSite?.name ?? (snap ? "Nodo LOLA (polo sur)" : "Punto personalizado");
+  const pointLabel = selectedSite?.name ?? (snap ? t.point.node : t.point.custom);
 
   // Serie de la ventana (una vez por ventana y punto)
   const windowData = useMemo(() => {
@@ -206,7 +224,7 @@ export default function App() {
 
   const jumpBest = (iso: string) => {
     scrub(iso);
-    notify(`Instante ajustado al inicio de la mejor ventana: ${formatUtc(iso)}`);
+    notify(t.toasts.best(formatUtc(iso)));
   };
 
   // Comparativa: añadir el punto y la fecha actuales; cargar un escenario en el globo
@@ -216,10 +234,10 @@ export default function App() {
     const n = useAppStore.getState().scenarios.length;
     notify(
       r === "added"
-        ? `Añadido a la comparativa (${n}/4)`
+        ? t.toasts.added(n)
         : r === "duplicate"
-          ? "Ese punto y esa fecha ya están en la comparativa"
-          : "La comparativa ya tiene 4 escenarios",
+          ? t.toasts.duplicate
+          : t.toasts.full,
     );
   };
   const loadScenario = (s: Scenario) => {
@@ -234,12 +252,27 @@ export default function App() {
   // Alerta de enlace: distingue relieve, momento y "nunca en el día lunar"
   const earthAlert = (() => {
     if (!metrics || metrics.earth.visibleNow) return null;
-    if (metrics.earth.visibleHours <= 0) return "La Tierra no sale en todo el día lunar: sin enlace directo (DTE). Haría falta un satélite de retransmisión.";
-    if (metrics.earth.elevationNowDeg > 0) return "La Tierra está tapada por el relieve: sin enlace directo (DTE) en este instante.";
-    return "Tierra bajo el horizonte en este instante: sin enlace directo (DTE).";
+    if (metrics.earth.visibleHours <= 0) return t.alerts.earthNever;
+    if (metrics.earth.elevationNowDeg > 0) return t.alerts.earthBlocked;
+    return t.alerts.earthBelow;
   })();
 
-  const horizonLabel = snap ? `LOLA · nodo a ${snap.distanceKm.toFixed(1).replace(".", ",")} km` : "Geométrico (Luna lisa)";
+  // Día del aterrizaje del sitio seleccionado (si su fecha tiene precisión de día y hay efeméride)
+  const landingIso = selectedSite?.date.value && selectedSite.date.precision === "day" ? `${selectedSite.date.value}T00:00:00Z` : null;
+  const landing =
+    landingIso && coverage && rangeContaining(coverage.ranges, landingIso)
+      ? {
+          dateLabel: formatDate(landingIso),
+          active: at === landingIso,
+          onGo: () => {
+            setPlaying(false);
+            setDate(landingIso);
+            notify(t.toasts.landing);
+          },
+        }
+      : null;
+
+  const horizonLabel = snap ? t.card.horizonLola(formatNumber1(snap.distanceKm)) : t.card.horizonGeometric;
   const card = (
     <SiteCard
       title={pointLabel}
@@ -250,6 +283,7 @@ export default function App() {
       subSolar={subSolar}
       subEarth={subEarth}
       horizonLabel={horizonLabel}
+      landing={landing}
     />
   );
   const localScene = adv && scene === "local";
@@ -258,7 +292,7 @@ export default function App() {
     <div className="font-sans antialiased text-telemetry flex flex-col h-[100dvh] overflow-hidden selection:bg-sky-500/30 selection:text-white">
       {/* Escenario 3D a pantalla completa */}
       <div className="fixed inset-0 z-0 bg-obsidian">
-        <Suspense fallback={<p className="p-6 font-mono text-xs text-steel">Cargando globo 3D…</p>}>
+        <Suspense fallback={<p className="p-6 font-mono text-xs text-steel">{t.center.loadingGlobe}</p>}>
           <LunarGlobe
             sunDir={bodies.sun}
             earthDir={bodies.earth}
@@ -280,7 +314,7 @@ export default function App() {
         </Suspense>
         {localScene && (
           <div className="absolute inset-0 z-[1]">
-            <Suspense fallback={<p className="p-6 font-mono text-xs text-steel">Cargando vista local…</p>}>
+            <Suspense fallback={<p className="p-6 font-mono text-xs text-steel">{t.center.loadingLocal}</p>}>
               <LocalHorizonView profile={profile} sun={sky.sun} earth={sky.earth} sunVisible={metrics?.sun.visibleNow ?? false} />
             </Suspense>
           </div>
@@ -289,7 +323,7 @@ export default function App() {
 
       <HudHeader synthetic={synthetic} coordsLabel={formatLatLon(evalCoords)} />
 
-      {ds.status === "loading" && <p className="relative z-10 p-4 font-mono text-xs text-steel">Cargando datos…</p>}
+      {ds.status === "loading" && <p className="relative z-10 p-4 font-mono text-xs text-steel">{t.center.loadingData}</p>}
 
       {coverage && at && now && windowEnd && (
         <>
@@ -316,7 +350,7 @@ export default function App() {
                   <div className="pointer-events-auto console-panel rounded-md px-2 lg:px-3 py-1.5 lg:py-2 flex flex-wrap items-center gap-2 lg:gap-3">
                     <div className="hidden lg:block">
                       <div className="text-[10px] font-mono uppercase tracking-wider text-steel tabular-nums">
-                        Sitio seleccionado · {formatUtc(now)}
+                        {t.center.selected} · {formatUtc(now)}
                       </div>
                       <div className="text-xs sm:text-sm font-semibold text-telemetry flex flex-wrap items-center gap-2 mt-0.5">
                         <span>{pointLabel}</span>
@@ -324,23 +358,22 @@ export default function App() {
                       </div>
                       {snap && (
                         <div className="text-[11px] text-emerald-300 mt-0.5">
-                          Relieve LOLA · nodo de la rejilla de {grid ? grid.meta.spacing_m / 1000 : ""} km a{" "}
-                          {snap.distanceKm.toFixed(1).replace(".", ",")} km del punto elegido
+                          {t.center.nodeNote(grid ? grid.meta.spacing_m / 1000 : 0, formatNumber1(snap.distanceKm))}
                         </div>
                       )}
-                      {!snap && gridLoading && <div className="text-[11px] text-steel mt-0.5">Cargando horizonte LOLA del polo sur…</div>}
+                      {!snap && gridLoading && <div className="text-[11px] text-steel mt-0.5">{t.center.loadingGrid}</div>}
                     </div>
-                    <div className="flex flex-wrap gap-1" role="group" aria-label="Vista">
+                    <div className="flex flex-wrap gap-1" role="group" aria-label={t.center.viewAria}>
                       <button
                         type="button"
                         onClick={() => {
                           setScene("globe");
                           requestGlobeView("site");
                         }}
-                        title="Centrar la cámara en el sitio"
+                        title={t.center.centerTitle}
                         className="btn-control px-2.5 py-1 rounded text-xs font-medium"
                       >
-                        Centrar
+                        {t.center.center}
                       </button>
                       <button
                         type="button"
@@ -350,22 +383,22 @@ export default function App() {
                         }}
                         className="btn-control px-2.5 py-1 rounded text-xs font-medium"
                       >
-                        Polo sur
+                        {t.center.southPole}
                       </button>
                       {adv && (
                         <button
                           type="button"
                           onClick={() => setScene(localScene ? "globe" : "local")}
                           aria-pressed={localScene}
-                          title="Alternar vista global / horizonte visto desde la superficie"
+                          title={t.center.localTitle}
                           className="btn-control px-2.5 py-1 rounded text-xs font-medium"
                         >
-                          {localScene ? "Vista global" : "Vista local"}
+                          {localScene ? t.center.global : t.center.local}
                         </button>
                       )}
                       {adv && !localScene && (
                         <button type="button" onClick={toggleGrid} aria-pressed={showGrid} className="btn-control px-2.5 py-1 rounded text-xs font-medium">
-                          Rejilla
+                          {t.center.grid}
                         </button>
                       )}
                     </div>
@@ -381,15 +414,14 @@ export default function App() {
                 <DataStatusBanner synthetic={synthetic} error={error} />
                 {truncated && (
                   <p className="pointer-events-auto self-start console-panel rounded-md px-2 py-1 text-[11px] font-mono text-amber-300">
-                    Ventana recortada: los datos cargados terminan el {formatUtc(windowEnd)}.
+                    {t.center.truncated(formatUtc(windowEnd))}
                   </p>
                 )}
                 {localScene && (
                   <div className="pointer-events-auto self-start">
                     {card}
                     <p className="mt-1.5 console-panel rounded-md px-2 py-1 text-[10px] text-steel max-w-80">
-                      Línea del horizonte: {profile ? "relieve LOLA real" : "geométrica (Luna lisa)"}. Sol y Tierra a tamaño angular real. El
-                      terreno intermedio es esquemático.
+                      {t.center.localNote(!!profile)}
                     </p>
                   </div>
                 )}
@@ -399,17 +431,17 @@ export default function App() {
                 <div className="hidden lg:flex pointer-events-auto console-panel rounded-md px-3 py-1.5 text-[11px] text-steel items-center gap-3">
                   {localScene ? (
                     <>
-                      <span>Arrastrar: mirar alrededor</span>
+                      <span>{t.center.helpLocal[0]}</span>
                       <span className="text-borderline">|</span>
-                      <span>Rueda: zoom</span>
+                      <span>{t.center.helpLocal[1]}</span>
                     </>
                   ) : (
                     <>
-                      <span>Arrastrar: rotar Luna</span>
+                      <span>{t.center.helpGlobe[0]}</span>
                       <span className="text-borderline">|</span>
-                      <span>Rueda: zoom</span>
+                      <span>{t.center.helpGlobe[1]}</span>
                       <span className="text-borderline">|</span>
-                      <span>Clic en superficie o mapa: evaluar punto</span>
+                      <span>{t.center.helpGlobe[2]}</span>
                     </>
                   )}
                 </div>
@@ -472,7 +504,7 @@ export default function App() {
       <Toast />
 
       <p className="sr-only">
-        Textura del globo: NASA's Scientific Visualization Studio (mosaico LROC WAC de ASU), solo como referencia visual.
+        {t.credit}
       </p>
     </div>
   );

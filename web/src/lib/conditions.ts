@@ -22,20 +22,8 @@ export const CONDITION_COLOR: Record<Condition, string> = {
   none: "#262d3a",
 };
 
-export const CONDITION_LABEL: Record<Condition, string> = {
-  both: "Sol y Tierra",
-  sun: "Solo Sol",
-  earth: "Solo Tierra",
-  none: "Ni Sol ni Tierra",
-};
-
-/** Etiqueta corta en mayúsculas para la ficha del punto. */
-export const CONDITION_TAG: Record<Condition, string> = {
-  both: "SOL + TIERRA",
-  sun: "SOL · SIN DTE",
-  earth: "NOCHE · CON DTE",
-  none: "NOCHE · SIN DTE",
-};
+/** Orden de la leyenda. Los textos están en i18n (dict.conditions). */
+export const CONDITION_ORDER: Condition[] = ["both", "sun", "earth", "none"];
 
 /**
  * Condición con horizonte geométrico (Luna lisa) vista desde el centro lunar: para el mapa global.

@@ -13,6 +13,7 @@ import { CONDITION_COLOR, conditionOf } from "../../lib/conditions";
 import { formatDayMonth, formatUtc } from "../../lib/format";
 import { columnSamples, fractionOf, timeAtFraction } from "../../lib/timeline";
 import { MS_PER_DAY, MS_PER_HOUR, parseUtc, toIsoUtc } from "../../lib/time";
+import { useT } from "../../i18n";
 
 export interface SynodicTimelineProps {
   sun: HorizonSample[];
@@ -30,7 +31,8 @@ const SUN_DARK = "#161b26";
 const EARTH_ON = CONDITION_COLOR.earth;
 const EARTH_OFF = "#3f151d";
 
-export function SynodicTimeline({ sun, earth, cursor, onScrub, heightClass = "h-10", dateLabels = false, label = "Instante dentro del día lunar" }: SynodicTimelineProps) {
+export function SynodicTimeline({ sun, earth, cursor, onScrub, heightClass = "h-10", dateLabels = false, label }: SynodicTimelineProps) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const t0 = sun.length ? parseUtc(sun[0].time) : 0;
@@ -106,7 +108,7 @@ export function SynodicTimeline({ sun, earth, cursor, onScrub, heightClass = "h-
       ref={boxRef}
       role="slider"
       tabIndex={0}
-      aria-label={label}
+      aria-label={label ?? t.timeline.aria}
       aria-valuemin={0}
       aria-valuemax={Math.round((t1 - t0) / MS_PER_HOUR)}
       aria-valuenow={Math.round((cursorMs - t0) / MS_PER_HOUR)}

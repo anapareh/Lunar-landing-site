@@ -6,14 +6,8 @@ import type { Site } from "../types";
 
 export type SiteFilter = "all" | "south" | "apollo" | "robotic" | "clps" | "failed";
 
-export const SITE_FILTERS: { id: SiteFilter; label: string }[] = [
-  { id: "all", label: "Todos" },
-  { id: "south", label: "Polo sur" },
-  { id: "apollo", label: "Apollo" },
-  { id: "robotic", label: "Robóticas" },
-  { id: "clps", label: "CLPS / comerciales" },
-  { id: "failed", label: "Fallidos" },
-];
+/** Orden de los chips. Los textos están en i18n (dict.sites.filters). */
+export const SITE_FILTERS: SiteFilter[] = ["all", "south", "apollo", "robotic", "clps", "failed"];
 
 export const SOUTH_LAT = -60;
 

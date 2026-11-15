@@ -2,8 +2,8 @@
   "contract_version": "1.0.0",
   "sites": [
     {
-      "id": "artemis3-peak-near-shackleton",
-      "name": "Peak Near Shackleton",
+      "id": "artemis3-peak-near-cabeus-b",
+      "name": "Peak near Cabeus B",
       "mission": "Artemis III",
       "agency": "NASA",
       "category": "artemis",
@@ -16,15 +16,20 @@
         "kind": null,
         "precision": null
       },
-      "sources": [],
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
       "verified": false,
       "verified_by": null,
       "verified_on": null,
-      "notes": "TODO: verificar en Quickmap. Añadir fuente. Es una región: decidir el punto representativo."
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
     },
     {
-      "id": "artemis3-connecting-ridge",
-      "name": "Connecting Ridge",
+      "id": "artemis3-haworth",
+      "name": "Haworth",
       "mission": "Artemis III",
       "agency": "NASA",
       "category": "artemis",
@@ -37,15 +42,20 @@
         "kind": null,
         "precision": null
       },
-      "sources": [],
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
       "verified": false,
       "verified_by": null,
       "verified_on": null,
-      "notes": "TODO: verificar en Quickmap. Añadir fuente. Es una región: decidir el punto representativo."
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
     },
     {
-      "id": "artemis3-faustini-rim-a",
-      "name": "Faustini Rim A",
+      "id": "artemis3-malapert-massif",
+      "name": "Malapert Massif",
       "mission": "Artemis III",
       "agency": "NASA",
       "category": "artemis",
@@ -58,11 +68,172 @@
         "kind": null,
         "precision": null
       },
-      "sources": [],
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
       "verified": false,
       "verified_by": null,
       "verified_on": null,
-      "notes": "TODO: verificar en Quickmap. Añadir fuente. Es una región: decidir el punto representativo."
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
+    },
+    {
+      "id": "artemis3-mons-mouton-plateau",
+      "name": "Mons Mouton Plateau",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": {
+        "value": null,
+        "kind": null,
+        "precision": null
+      },
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
+    },
+    {
+      "id": "artemis3-mons-mouton",
+      "name": "Mons Mouton",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": {
+        "value": null,
+        "kind": null,
+        "precision": null
+      },
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
+    },
+    {
+      "id": "artemis3-nobile-rim-1",
+      "name": "Nobile Rim 1",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": {
+        "value": null,
+        "kind": null,
+        "precision": null
+      },
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
+    },
+    {
+      "id": "artemis3-nobile-rim-2",
+      "name": "Nobile Rim 2",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": {
+        "value": null,
+        "kind": null,
+        "precision": null
+      },
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
+    },
+    {
+      "id": "artemis3-de-gerlache-rim-2",
+      "name": "de Gerlache Rim 2",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": {
+        "value": null,
+        "kind": null,
+        "precision": null
+      },
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
+    },
+    {
+      "id": "artemis3-slater-plain",
+      "name": "Slater Plain",
+      "mission": "Artemis III",
+      "agency": "NASA",
+      "category": "artemis",
+      "status": "candidate",
+      "location_kind": "region_center",
+      "lat": null,
+      "lon": null,
+      "date": {
+        "value": null,
+        "kind": null,
+        "precision": null
+      },
+      "sources": [
+        {
+          "label": "NASA RELEASE24-136: NASA Provides Update on Artemis III Moon Landing Regions (28 oct 2024)",
+          "url": "https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/"
+        }
+      ],
+      "verified": false,
+      "verified_by": null,
+      "verified_on": null,
+      "notes": "Región candidata de la lista de la NASA (28 oct 2024, sin orden de prioridad). La NASA no publica el centro de la región: coordenadas pendientes de verificar en Quickmap."
     },
     {
       "id": "surveyor-1",

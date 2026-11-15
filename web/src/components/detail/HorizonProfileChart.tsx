@@ -6,6 +6,7 @@
 import { useMemo, useState } from "react";
 import type { HorizonProfile, HorizonSample } from "../../types";
 import { formatDeg } from "../../lib/format";
+import { useT } from "../../i18n";
 
 export interface HorizonProfileChartProps {
   profile: HorizonProfile | null;
@@ -34,6 +35,8 @@ function pathOf(samples: HorizonSample[], x: (a: number) => number, y: (e: numbe
 }
 
 export function HorizonProfileChart({ profile, sun, earth, sunNow, earthNow }: HorizonProfileChartProps) {
+  const t = useT();
+  const hc = t.horizonChart;
   const [hover, setHover] = useState<{ az: number; x: number } | null>(null);
   const values = profile?.horizon_elevation_deg ?? null;
   const step = profile?.azimuth_step_deg ?? 1;
@@ -64,7 +67,7 @@ export function HorizonProfileChart({ profile, sun, earth, sunNow, earthNow }: H
   }, [values, lo, hi]);
 
   const ticksY = [lo, 0, hi].filter((v, i, a) => a.findIndex((w) => Math.abs(w - v) < (hi - lo) * 0.12) === i);
-  const card: [number, string][] = [[0, "N"], [90, "E"], [180, "S"], [270, "O"], [360, "N"]];
+  const card: [number, string][] = [0, 90, 180, 270, 360].map((az, i) => [az, hc.cardinals[i]]);
 
   return (
     <figure className="m-0">
@@ -72,7 +75,7 @@ export function HorizonProfileChart({ profile, sun, earth, sunNow, earthNow }: H
         viewBox={`0 0 ${W} ${H}`}
         className="w-full h-auto block"
         role="img"
-        aria-label={`Perfil del horizonte ${profile ? "con relieve LOLA" : "geométrico"} entre ${formatDeg(lo)} y ${formatDeg(hi)}, con la trayectoria del Sol y de la Tierra.`}
+        aria-label={hc.aria(!!profile, formatDeg(lo), formatDeg(hi))}
         onMouseMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           const px = ((e.clientX - r.left) / r.width) * W;
@@ -104,16 +107,16 @@ export function HorizonProfileChart({ profile, sun, earth, sunNow, earthNow }: H
             <line x1={hover.x} x2={hover.x} y1={M.t} y2={H - M.b} stroke="#8b9bb4" strokeWidth={1} />
             <rect x={Math.min(hover.x + 4, W - 92)} y={M.t} width={88} height={14} rx={2} fill="#0a0d12" stroke="#1f2a3a" />
             <text x={Math.min(hover.x + 8, W - 88)} y={M.t + 10} fontSize={8} fontFamily="JetBrains Mono, monospace" className="fill-telemetry">
-              az {Math.round(hover.az)}° · hor. {formatDeg(horizonAt(hover.az))}
+              {hc.hover(Math.round(hover.az), formatDeg(horizonAt(hover.az)))}
             </text>
           </g>
         )}
       </svg>
       <figcaption className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] font-mono text-steel mt-1">
-        <span className="flex items-center gap-1"><i className="w-3 h-2 inline-block bg-[#3a4252] border border-[#8b9bb4]" aria-hidden="true" />Horizonte</span>
-        <span className="flex items-center gap-1"><i className="key key-sun key-dashed" aria-hidden="true" />Sol (día lunar)</span>
-        <span className="flex items-center gap-1"><i className="key key-earth key-dashed" aria-hidden="true" />Tierra</span>
-        <span>● ahora</span>
+        <span className="flex items-center gap-1"><i className="w-3 h-2 inline-block bg-[#3a4252] border border-[#8b9bb4]" aria-hidden="true" />{hc.horizon}</span>
+        <span className="flex items-center gap-1"><i className="key key-sun key-dashed" aria-hidden="true" />{hc.sunPath}</span>
+        <span className="flex items-center gap-1"><i className="key key-earth key-dashed" aria-hidden="true" />{hc.earthPath}</span>
+        <span>{hc.now}</span>
       </figcaption>
     </figure>
   );

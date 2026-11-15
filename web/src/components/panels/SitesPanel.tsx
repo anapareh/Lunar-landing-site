@@ -3,12 +3,14 @@
  * - El punto evaluado aparece arriba con su condición actual (Sol / Tierra).
  * - Sitios de sites.json con filtros (también filtran las balizas del globo). Las coordenadas de
  *   las misiones vienen de la tabla NSSDCA de NASA (posiciones medidas en imágenes LROC) y siguen
- *   pendientes de la doble verificación del equipo en Quickmap. Sin coordenadas = no seleccionable.
+ *   pendientes de la doble verificación del equipo en Quickmap. Sin coordenadas = no seleccionable
+ *   (p. ej. las regiones candidatas de Artemis III, cuyo centro la NASA no publica).
  */
 import type { Site } from "../../types";
 import type { Coords } from "../../store/useAppStore";
-import { CONDITION_COLOR, CONDITION_LABEL, type Condition } from "../../lib/conditions";
+import { CONDITION_COLOR, type Condition } from "../../lib/conditions";
 import { SITE_FILTERS, matchesFilter, siteYear, type SiteFilter } from "../../lib/siteFilters";
+import { useT } from "../../i18n";
 import { FreeCoordinatesForm, formatLatLon } from "../sites/FreeCoordinatesForm";
 
 export interface SitesPanelProps {
@@ -28,47 +30,48 @@ export interface SitesPanelProps {
   sheetOpen: boolean;
 }
 
-const Dot = ({ c }: { c: Condition | null }) => (
-  <span
-    className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/15"
-    style={{ background: c ? CONDITION_COLOR[c] : "#7d8ba1" }}
-    title={c ? `Ahora: ${CONDITION_LABEL[c]} (horizonte geométrico)` : undefined}
-    aria-hidden="true"
-  />
-);
-
 export function SitesPanel(props: SitesPanelProps) {
   const { sites, sitesLoaded, siteConditions, selectedSiteId, onSelectSite, filter, onFilter, current, coords, onCoords, onAddCompare, sheetOpen } = props;
+  const t = useT();
   const usable = sites.filter((s): s is Site & { lat: number; lon: number } => s.lat !== null && s.lon !== null);
   const shown = usable.filter((s) => matchesFilter(s, filter));
   const noCoords = sites.filter((s) => s.lat === null || s.lon === null);
   const source = usable.find((s) => s.sources.length > 0)?.sources[0];
 
+  const Dot = ({ c }: { c: Condition | null }) => (
+    <span
+      className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/15"
+      style={{ background: c ? CONDITION_COLOR[c] : "#7d8ba1" }}
+      title={c ? t.sites.dotTitle(t.conditions.label[c]) : undefined}
+      aria-hidden="true"
+    />
+  );
+
   return (
     <aside
       id="sites-panel"
-      aria-label="Sitios candidatos"
+      aria-label={t.sites.title}
       className={`pointer-events-auto console-panel rounded-md w-full lg:w-64 flex flex-col lg:max-h-full shrink-0 max-lg:fixed max-lg:inset-x-2 max-lg:w-auto max-lg:z-40 max-lg:bottom-[calc(var(--foot-h,110px)+16px)] max-lg:max-h-[50vh] ${sheetOpen ? "" : "max-lg:hidden"}`}
     >
       <div className="px-3 py-2 border-b border-borderline bg-panel/60">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-telemetry">Sitios candidatos</h2>
-        <p className="text-[10px] text-steel">Clic para evaluar y centrar · o clic en el globo / mapa</p>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-telemetry">{t.sites.title}</h2>
+        <p className="text-[10px] text-steel">{t.sites.hint}</p>
       </div>
 
       {usable.length > 0 && (
-        <div className="px-2 pt-2 flex flex-wrap gap-1" role="group" aria-label="Filtrar sitios">
+        <div className="px-2 pt-2 flex flex-wrap gap-1" role="group" aria-label={t.sites.filterAria}>
           {SITE_FILTERS.map((f) => {
-            const n = usable.filter((s) => matchesFilter(s, f.id)).length;
+            const n = usable.filter((s) => matchesFilter(s, f)).length;
             return (
               <button
-                key={f.id}
+                key={f}
                 type="button"
-                onClick={() => onFilter(f.id)}
-                aria-pressed={filter === f.id}
+                onClick={() => onFilter(f)}
+                aria-pressed={filter === f}
                 disabled={n === 0}
                 className="btn-control !min-h-0 px-1.5 py-0.5 rounded text-[10px] font-mono"
               >
-                {f.label} <span className="text-steel">{n}</span>
+                {t.sites.filters[f]} <span className="text-steel">{n}</span>
               </button>
             );
           })}
@@ -84,7 +87,9 @@ export function SitesPanel(props: SitesPanelProps) {
               <div className="text-[11px] font-semibold text-telemetry truncate">{current.label}</div>
               <div className="text-[9px] font-mono text-steel truncate tabular-nums">{formatLatLon(current.coords)}</div>
             </div>
-            {current.condition && <span className="text-[9px] font-mono text-slate-300 text-right leading-tight">{CONDITION_LABEL[current.condition]}</span>}
+            {current.condition && (
+              <span className="text-[9px] font-mono text-slate-300 text-right leading-tight">{t.conditions.label[current.condition]}</span>
+            )}
           </div>
         )}
 
@@ -92,7 +97,6 @@ export function SitesPanel(props: SitesPanelProps) {
           const c = siteConditions[s.id] ?? null;
           const sel = s.id === selectedSiteId;
           const failed = s.status === "failed";
-          const year = siteYear(s);
           return (
             <button
               key={s.id}
@@ -106,10 +110,10 @@ export function SitesPanel(props: SitesPanelProps) {
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-semibold text-telemetry truncate">
                   {s.name}
-                  {failed && <span className="ml-1 text-[9px] font-mono text-red-300">✕ FALLIDO</span>}
+                  {failed && <span className="ml-1 text-[9px] font-mono text-red-300">{t.sites.failed}</span>}
                 </div>
                 <div className="text-[9px] font-mono text-steel truncate">
-                  {[s.agency, year, formatLatLon(s)].filter(Boolean).join(" · ")}
+                  {[s.agency ? t.sites.agency(s.agency) : null, siteYear(s), formatLatLon(s)].filter(Boolean).join(" · ")}
                 </div>
               </div>
             </button>
@@ -118,24 +122,24 @@ export function SitesPanel(props: SitesPanelProps) {
 
         {source && (
           <p className="text-[9px] text-steel px-1 leading-snug">
-            Coordenadas:{" "}
+            {t.sites.sourcePrefix}{" "}
             <a href={source.url} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
               NASA NSSDCA
             </a>{" "}
-            (medidas en imágenes LROC). Pendientes de doble verificación del equipo en Quickmap. ● = condición ahora (Luna lisa).
+            {t.sites.sourceSuffix}
           </p>
         )}
 
-        {noCoords.length > 0 && filter === "all" && (
+        {noCoords.length > 0 && (filter === "all" || filter === "south") && (
           <div className="pt-1">
-            <div className="text-[9px] font-mono text-steel uppercase tracking-wider px-1 mb-1">Sin coordenadas todavía</div>
+            <div className="text-[9px] font-mono text-steel uppercase tracking-wider px-1 mb-1">{t.sites.noCoordsTitle}</div>
             {noCoords.map((s) => (
               <div key={s.id} className="rounded px-2 py-1.5 mb-1 flex items-center gap-2 border border-dashed border-borderline opacity-70" title={s.notes ?? undefined}>
                 <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-steel" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] font-semibold text-slate-300 truncate">{s.name}</div>
                   <div className="text-[9px] font-mono text-steel truncate">
-                    {[s.mission, s.agency].filter(Boolean).join(" · ")} · pendiente de verificar
+                    {[s.mission, s.agency ? t.sites.agency(s.agency) : null].filter(Boolean).join(" · ")} · {t.sites.noCoordsSub}
                   </div>
                 </div>
               </div>
@@ -143,7 +147,7 @@ export function SitesPanel(props: SitesPanelProps) {
           </div>
         )}
 
-        {sitesLoaded && sites.length === 0 && <p className="text-[11px] text-steel px-1">Aún no hay lista de sitios.</p>}
+        {sitesLoaded && sites.length === 0 && <p className="text-[11px] text-steel px-1">{t.sites.empty}</p>}
       </div>
 
       <FreeCoordinatesForm value={coords} onChange={onCoords} onAddCompare={onAddCompare} />

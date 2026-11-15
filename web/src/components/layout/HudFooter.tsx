@@ -7,7 +7,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { MS_PER_DAY, addLunarDays, parseUtc, toIsoUtc } from "../../lib/time";
 import type { LunarPhase } from "../../lib/phase";
 import { formatPercent } from "../../lib/format";
-import { SIM_SPEEDS, type AppMode, type Sheet } from "../../store/useAppStore";
+import { SIM_SPEEDS, useAppStore, type AppMode, type Sheet } from "../../store/useAppStore";
+import { useT } from "../../i18n";
 
 export interface HudFooterProps {
   /** ISO UTC. */
@@ -36,6 +37,10 @@ const fromInput = (v: string) => `${v}:00Z`;
 export function HudFooter(props: HudFooterProps) {
   const { value, min, max, onChange, mode, playing, onTogglePlay, speed, onSpeed, drawerOpen, onToggleDrawer, phase, timeline, sheet, onToggleSheet } = props;
   const footRef = useRef<HTMLElement>(null);
+  const t = useT();
+  const f = t.footer;
+  const lang = useAppStore((s) => s.lang);
+  const setLang = useAppStore((s) => s.setLang);
 
   // Altura del pie como variable CSS: las hojas inferiores y la ficha móvil se colocan encima
   useEffect(() => {
@@ -51,11 +56,11 @@ export function HudFooter(props: HudFooterProps) {
   const inRange = (iso: string) => parseUtc(iso) >= parseUtc(min) && parseUtc(iso) <= parseUtc(max);
   const shift = (ms: number) => toIsoUtc(parseUtc(value) + ms);
   const shortcuts: { label: string; iso: string; title?: string; desktopOnly?: boolean }[] = [
-    ...(adv ? [{ label: "−1 día lunar", iso: addLunarDays(value, -1), desktopOnly: true }] : []),
-    { label: "−1d", iso: shift(-MS_PER_DAY), title: "Un día antes" },
-    { label: "+1d", iso: shift(MS_PER_DAY), title: "Un día después" },
-    ...(adv ? [{ label: "+1 día lunar", iso: addLunarDays(value, 1), desktopOnly: true }] : []),
-    { label: "Hoy", iso: toIsoUtc(Math.floor(Date.now() / 60_000) * 60_000), title: "Ahora (UTC)" },
+    ...(adv ? [{ label: f.minusLunar, iso: addLunarDays(value, -1), desktopOnly: true }] : []),
+    { label: f.minusDay, iso: shift(-MS_PER_DAY), title: f.minusDayTitle },
+    { label: f.plusDay, iso: shift(MS_PER_DAY), title: f.plusDayTitle },
+    ...(adv ? [{ label: f.plusLunar, iso: addLunarDays(value, 1), desktopOnly: true }] : []),
+    { label: f.today, iso: toIsoUtc(Math.floor(Date.now() / 60_000) * 60_000), title: f.todayTitle },
   ];
 
   return (
@@ -67,9 +72,9 @@ export function HudFooter(props: HudFooterProps) {
           aria-pressed={playing}
           className={`order-1 btn-control px-3 py-1 rounded text-xs font-medium w-24 ${playing ? "active" : ""}`}
         >
-          {playing ? "⏸ Pausa" : "▶ Simular"}
+          {playing ? f.pause : f.play}
         </button>
-        <div className="order-2 lg:hidden flex gap-2 flex-1 justify-end" role="group" aria-label="Paneles">
+        <div className="order-2 lg:hidden flex gap-2 flex-1 justify-end" role="group" aria-label={f.panelsAria}>
           <button
             type="button"
             onClick={() => onToggleSheet("sites")}
@@ -77,7 +82,7 @@ export function HudFooter(props: HudFooterProps) {
             aria-controls="sites-panel"
             className={`btn-control px-3 py-1 rounded text-xs font-medium ${sheet === "sites" ? "active" : ""}`}
           >
-            Sitios
+            {f.sites}
           </button>
           <button
             type="button"
@@ -86,12 +91,22 @@ export function HudFooter(props: HudFooterProps) {
             aria-controls="conditions-panel"
             className={`btn-control px-3 py-1 rounded text-xs font-medium ${sheet === "cond" ? "active" : ""}`}
           >
-            Condiciones
+            {f.conditions}
+          </button>
+          {/* En móvil estrecho el idioma va aquí (no cabe en la cabecera) */}
+          <button
+            type="button"
+            onClick={() => setLang(lang === "es" ? "en" : "es")}
+            title={t.header.langTitle}
+            aria-label={t.header.langTitle}
+            className="sm:hidden btn-control px-2 py-1 rounded text-xs font-mono font-semibold"
+          >
+            {t.header.langButton}
           </button>
         </div>
         <div className="order-3 basis-full h-0 lg:hidden" aria-hidden="true" />
         {adv && (
-          <div className="order-4 flex items-center bg-obsidian rounded border border-borderline p-0.5 text-[11px] font-mono" role="group" aria-label="Velocidad de simulación">
+          <div className="order-4 flex items-center bg-obsidian rounded border border-borderline p-0.5 text-[11px] font-mono" role="group" aria-label={f.speedAria}>
             {SIM_SPEEDS.map((s) => (
               <button
                 key={s.value}
@@ -108,13 +123,13 @@ export function HudFooter(props: HudFooterProps) {
           </div>
         )}
         <label className="order-4 flex items-center gap-1.5 text-[10px] font-mono text-steel max-lg:flex-[1_1_140px] max-lg:min-w-0">
-          <span className="sr-only sm:not-sr-only">UTC</span>
+          <span className="sr-only sm:not-sr-only">{f.utc}</span>
           <input
             type="datetime-local"
             value={toInput(value)}
             min={toInput(min)}
             max={toInput(max)}
-            title="Fecha de aterrizaje (UTC): inicio de la ventana de un día lunar"
+            title={f.dateTitle}
             onChange={(e) => {
               if (!e.target.value) return;
               const iso = fromInput(e.target.value);
@@ -130,7 +145,7 @@ export function HudFooter(props: HudFooterProps) {
               key={s.label}
               type="button"
               disabled={!usable}
-              title={usable ? s.title : "Fuera del rango de datos"}
+              title={usable ? s.title : f.outOfRange}
               onClick={() => onChange(s.iso)}
               className={`order-4 btn-control px-2 py-1 rounded text-xs ${s.desktopOnly ? "hidden lg:inline-block" : ""}`}
             >
@@ -139,8 +154,8 @@ export function HudFooter(props: HudFooterProps) {
           );
         })}
         {phase && (
-          <span className="order-5 hidden lg:inline text-[11px] font-mono text-sky-300" title="Fase vista desde la Tierra, calculada con la efeméride">
-            {adv ? `FASE: ${phase.name.toUpperCase()} (${formatPercent(phase.illuminated)} iluminada)` : `Fase lunar: ${phase.name}`}
+          <span className="order-5 hidden lg:inline text-[11px] font-mono text-sky-300" title={f.phaseTitle}>
+            {adv ? f.phaseAdvanced(t.phases[phase.index], formatPercent(phase.illuminated)) : f.phaseSimple(t.phases[phase.index])}
           </span>
         )}
         {adv && (
@@ -151,7 +166,7 @@ export function HudFooter(props: HudFooterProps) {
             aria-controls="analysis-drawer"
             className={`order-5 btn-control px-2.5 py-1 rounded text-xs font-medium lg:ml-auto ${drawerOpen ? "active" : ""}`}
           >
-            {drawerOpen ? "▾" : "▴"} Análisis temporal
+            {drawerOpen ? "▾" : "▴"} {f.analysis}
           </button>
         )}
       </div>

@@ -40,6 +40,23 @@ del 1 al 31 de noviembre de 2026.
 
 Despreciable frente al tamaño angular del Sol (~0,27° de radio). Cierra Q-101: paso de 60 min.
 
+## 2b. Años de las misiones (1966–1976, 2013, 2019–2020, 2023–2025)
+
+Efeméride generada con el mismo proceso (`build_ephemeris.py`, SPICE, `MOON_ME`, `LT+S`, paso 60 min).
+Contraste puntual con JPL Horizons (15 nov 2026): nuestra conversión topocéntrica sobre el JSON de la
+web frente a `QUANTITIES='4'`, `CENTER='coord@301'`, altura 0 km.
+
+| Punto | Instante (UTC) | Cuerpo | Nuestro (el / az) | Horizons (el / az) | Δel / Δaz |
+|---|---|---|---|---|---|
+| Apollo 11 (0,67416° N, 23,47314° E) | 1969-07-20 20:00 | Sol | 10,5535° / 88,8041° | 10,5533° / 88,8041° | +0,0002° / 0,0000° |
+| Apollo 11 | 1969-07-20 20:00 | Tierra | 59,2306° / 272,1611° | 59,2307° / 272,1610° | −0,0001° / +0,0001° |
+| IM-2 (84,7906° S, 29,1957° E) | 2025-03-06 12:00 | Sol | 2,2388° / 68,4542° | 2,2388° / 68,4542° | 0,0000° / 0,0000° |
+| IM-2 | 2025-03-06 12:00 | Tierra | 11,1064° / 335,6861° | 11,1065° / 335,6861° | −0,0001° / 0,0000° |
+
+Antes de 1972 SPICE trata UTC con el LSK `naif0012.tls` (sin segundos intercalares anteriores);
+Horizons usa "UT". La coincidencia al diezmilésimo de grado indica que la diferencia de escala de
+tiempo es despreciable a esta resolución (una diferencia de segundos movería el Sol < 0,001°).
+
 ## 3. Horizonte LOLA
 
 **Método** (`data-pipeline/src/lunarnav/horizon.py`): DEM `LDEM_85S_40M` (cerca, ≤ 20 km) y

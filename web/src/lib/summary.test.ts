@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { summarize } from "./summary";
+import en from "../i18n/en";
 import type { BodyMetrics, SiteMetrics } from "../types";
 
 const body = (o: Partial<BodyMetrics>): BodyMetrics => ({
@@ -44,5 +45,10 @@ describe("summarize", () => {
     expect(s.sun).toBe("Es de noche y el Sol no sale en todo el periodo.");
     expect(s.light).toBe("No habrá luz solar en el próximo día lunar.");
     expect(s.earth).toBe("La Tierra no se ve ahora: sale en 2 h.");
+  });
+  it("en inglés", () => {
+    const s = summarize(metrics({ hoursToRise: 39, visibleHours: 354 }, { visibleNow: true, visibleHours: 708 }), en.summary);
+    expect(s.sun).toBe("It is night: sunrise in 1 d 15 h.");
+    expect(s.earth).toMatch(/^Earth is visible the whole period/);
   });
 });

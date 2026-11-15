@@ -2,6 +2,7 @@
  * Cajón inferior "Análisis temporal": se despliega sobre el pie con la gráfica de elevación.
  */
 import type { ReactNode } from "react";
+import { useT } from "../../i18n";
 
 export interface BottomDrawerProps {
   open: boolean;
@@ -10,10 +11,11 @@ export interface BottomDrawerProps {
 }
 
 export function BottomDrawer({ open, onClose, children }: BottomDrawerProps) {
+  const d = useT().drawer;
   return (
     <section
       id="analysis-drawer"
-      aria-label="Análisis temporal"
+      aria-label={d.aria}
       hidden={!open}
       className="relative z-20 pointer-events-auto mx-2.5 sm:mx-3.5 mb-2 console-panel rounded-md p-3 pr-12"
     >
@@ -21,7 +23,7 @@ export function BottomDrawer({ open, onClose, children }: BottomDrawerProps) {
         type="button"
         onClick={onClose}
         className="absolute top-2 right-2 btn-control px-2 py-0.5 rounded text-xs"
-        aria-label="Cerrar análisis temporal"
+        aria-label={d.close}
       >
         ✕
       </button>

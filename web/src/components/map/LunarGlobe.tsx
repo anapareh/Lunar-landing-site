@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import type { Vector3 } from "../../types";
+import { useT } from "../../i18n";
 import { QUAT_NEARSIDE, QUAT_SOUTH_POLE, bodyToThree, latLonToThree, quatFacing, threeToLatLon } from "./globeMath";
 
 export interface LunarGlobeProps {
@@ -176,6 +177,9 @@ export default function LunarGlobe(props: LunarGlobeProps) {
   cardHiddenRef.current = cardHidden;
   const onInteractRef = useRef(onInteract);
   onInteractRef.current = onInteract;
+  const t = useT();
+  const webglMsg = useRef(t.globe.webgl);
+  webglMsg.current = t.globe.webgl;
   const mountRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const leaderRef = useRef<SVGPolylineElement>(null);
@@ -199,7 +203,7 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     } catch {
-      setWebglError("Este navegador no permite WebGL: no se puede mostrar el globo 3D.");
+      setWebglError(webglMsg.current);
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -630,7 +634,7 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reacciona a nuevas peticiones
   }, [viewRequest?.n]);
 
-  const label = site ? `lat ${site.lat.toFixed(2)}°, lon ${site.lon.toFixed(2)}°` : "ninguno";
+  const label = site ? `lat ${site.lat.toFixed(2)}°, lon ${site.lon.toFixed(2)}°` : t.globe.none;
   const labelClass = "globe-label px-1.5 py-0.5 rounded bg-surface/90 border border-borderline text-[10px] font-mono text-slate-200 shadow flex items-center gap-1";
 
   if (webglError) {
@@ -641,13 +645,13 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       className="relative w-full h-full cursor-grab active:cursor-grabbing touch-none"
       ref={mountRef}
       role="group"
-      aria-label={`Globo lunar iluminado desde la dirección del Sol, con el Sol y la Tierra en su dirección (no a escala). Sitio seleccionado: ${label}. Enlace con la Tierra: ${earthVisible ? "visible" : "sin línea de visión"}. Arrastra para girar, rueda para acercar, clic para elegir un punto; con el foco en el globo, las flechas también lo giran.`}
+      aria-label={t.globe.aria(label, !!earthVisible)}
     >
       <span className={labelClass} ref={(n) => { labelsRef.current.sun = n; }} hidden>
-        <i className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" aria-hidden="true" /> Sol
+        <i className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" aria-hidden="true" /> {t.globe.sun}
       </span>
       <span className={labelClass} ref={(n) => { labelsRef.current.earth = n; }} hidden>
-        <i className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" aria-hidden="true" /> Tierra
+        <i className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" aria-hidden="true" /> {t.globe.earth}
       </span>
       <div ref={beaconLayerRef} className="absolute inset-0 pointer-events-none overflow-hidden" />
       <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">

@@ -10,7 +10,8 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import type { HorizonProfile, SunEarthSeries } from "../../types";
 import { horizonElevationAt } from "../../lib/horizon";
 import { elevationAxis } from "../../lib/chartScale";
-import { formatDayMonth, formatDeg, formatUtc } from "../../lib/format";
+import { currentLocale, formatDayMonth, formatDeg, formatUtc } from "../../lib/format";
+import { useT } from "../../i18n";
 import { MS_PER_DAY, parseUtc } from "../../lib/time";
 
 export interface ElevationChartProps {
@@ -31,8 +32,8 @@ interface Row {
 }
 
 const SERIES = [
-  { key: "sun", name: "Sol", className: "line-sun" },
-  { key: "earth", name: "Tierra", className: "line-earth" },
+  { key: "sun", className: "line-sun" },
+  { key: "earth", className: "line-earth" },
 ] as const;
 
 /** Marcas a medianoche UTC, cada N días para no pasar de ~7. */
@@ -52,6 +53,7 @@ interface TooltipProps {
 }
 
 function ChartTooltip({ active, label, payload }: TooltipProps) {
+  const t = useT();
   if (!active || !payload?.length || typeof label !== "number") return null;
   const get = (k: string) => payload.find((p) => p.dataKey === k)?.value as number | undefined;
   return (
@@ -65,8 +67,8 @@ function ChartTooltip({ active, label, payload }: TooltipProps) {
             <span className={`key key-${s.key}`} aria-hidden="true" />
             <strong className="text-telemetry tabular-nums">{formatDeg(v)}</strong>
             <span className="text-steel">
-              {s.name}
-              {h !== undefined && ` · horizonte ${formatDeg(h)}`}
+              {t.chart[s.key]}
+              {h !== undefined && t.chart.tooltipHorizon(formatDeg(h))}
             </span>
           </div>
         );
@@ -76,6 +78,8 @@ function ChartTooltip({ active, label, payload }: TooltipProps) {
 }
 
 export function ElevationChart({ series, profile, at, cursor }: ElevationChartProps) {
+  const t = useT();
+  const ch = t.chart;
   const rows = useMemo<Row[]>(
     () =>
       series.sun.map((s, i) => {
@@ -94,7 +98,7 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
   const t1 = rows[rows.length - 1].t;
   const axis = elevationAxis(rows.flatMap((r) => [r.sun, r.earth, r.sunHorizon ?? 0, r.earthHorizon ?? 0]));
   const decimals = axis.step < 0.25 ? 1 : axis.step < 1 ? 2 : 0;
-  const tickFormat = new Intl.NumberFormat("es-ES", { maximumFractionDigits: decimals });
+  const tickFormat = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: decimals });
   const tableRows = rows.filter((r) => (r.t - t0) % (6 * 3_600_000) === 0);
   const cursorMs = cursor ? parseUtc(cursor) : null;
 
@@ -102,27 +106,27 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
     <figure className="m-0">
       <figcaption className="flex flex-wrap items-center justify-between gap-2 mb-1">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-telemetry">Elevación del Sol y la Tierra</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-telemetry">{ch.title}</h2>
           <p className="text-[11px] text-steel">
-            Un día lunar desde el {formatUtc(at)}
+            {ch.sub(formatUtc(at))}
             {axis.zoomed && (
               <>
                 {" · "}
-                <strong className="text-amber-400 font-semibold">Eje ampliado</strong> ({tickFormat.format(axis.domain[0])}° a{" "}
-                {tickFormat.format(axis.domain[1])}°): todo ocurre cerca del horizonte
+                <strong className="text-amber-400 font-semibold">{ch.zoomed}</strong>{" "}
+                {ch.zoomedRange(tickFormat.format(axis.domain[0]), tickFormat.format(axis.domain[1]))}
               </>
             )}
           </p>
         </div>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 list-none m-0 p-0" aria-label="Leyenda">
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300 list-none m-0 p-0" aria-label={ch.legendAria}>
           {SERIES.map((s) => (
             <li key={s.key} className="flex items-center gap-1.5">
-              <span className={`key key-${s.key}`} aria-hidden="true" /> {s.name}
+              <span className={`key key-${s.key}`} aria-hidden="true" /> {ch[s.key]}
             </li>
           ))}
           <li className="flex items-center gap-1.5">
             <span className={`key key-horizon${profile ? " key-dashed" : ""}`} aria-hidden="true" />
-            {profile ? "Horizonte en el acimut de cada cuerpo" : "Horizonte (0°)"}
+            {profile ? ch.horizonAz : ch.horizon0}
           </li>
         </ul>
       </figcaption>
@@ -176,7 +180,7 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
               <Line
                 key={s.key}
                 dataKey={s.key}
-                name={s.name}
+                name={ch[s.key]}
                 className={s.className}
                 stroke="currentColor"
                 strokeWidth={2}
@@ -192,14 +196,14 @@ export function ElevationChart({ series, profile, at, cursor }: ElevationChartPr
       </div>
 
       <details className="mt-1 text-xs font-mono">
-        <summary className="cursor-pointer text-steel hover:text-telemetry">Ver los datos en una tabla (cada 6 h)</summary>
+        <summary className="cursor-pointer text-steel hover:text-telemetry">{ch.table}</summary>
         <div className="max-h-48 overflow-auto mt-1">
           <table className="w-full border-collapse tabular-nums">
             <thead>
               <tr className="text-steel border-b border-borderline">
-                <th scope="col" className="text-left py-1 px-2">Fecha (UTC)</th>
-                <th scope="col" className="text-left py-1 px-2">Sol</th>
-                <th scope="col" className="text-left py-1 px-2">Tierra</th>
+                <th scope="col" className="text-left py-1 px-2">{ch.colDate}</th>
+                <th scope="col" className="text-left py-1 px-2">{ch.sun}</th>
+                <th scope="col" className="text-left py-1 px-2">{ch.earth}</th>
               </tr>
             </thead>
             <tbody>

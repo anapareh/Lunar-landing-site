@@ -38,8 +38,25 @@ describe("cobertura", () => {
         { file: "ephemeris/2026.json", start: "2026-01-01T00:00:00Z", end: "2026-12-31T23:00:00Z" },
       ],
     } as Manifest;
-    expect(manifestCoverage(m)).toEqual({ start: "2026-01-01T00:00:00Z", end: "2027-12-31T23:00:00Z" });
+    expect(manifestCoverage(m)).toEqual({
+      start: "2026-01-01T00:00:00Z",
+      end: "2027-12-31T23:00:00Z",
+      ranges: [{ start: "2026-01-01T00:00:00Z", end: "2027-12-31T23:00:00Z" }],
+    });
     expect(manifestCoverage({ ephemeris: [] } as unknown as Manifest)).toBeNull();
+  });
+
+  it("del manifest con años sueltos: tramos separados por huecos", () => {
+    const m = {
+      ephemeris: [
+        { file: "ephemeris/1969.json", start: "1969-01-01T00:00:00Z", end: "1969-12-31T23:00:00Z" },
+        { file: "ephemeris/2026.json", start: "2026-01-01T00:00:00Z", end: "2026-12-31T23:00:00Z" },
+      ],
+    } as Manifest;
+    expect(manifestCoverage(m)?.ranges).toEqual([
+      { start: "1969-01-01T00:00:00Z", end: "1969-12-31T23:00:00Z" },
+      { start: "2026-01-01T00:00:00Z", end: "2026-12-31T23:00:00Z" },
+    ]);
   });
 
   it("del conjunto sintético: incluye el instante actual y está marcado como sintético", () => {

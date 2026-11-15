@@ -9,9 +9,29 @@ import { create } from "zustand";
 import type { Scenario } from "../types";
 import type { GlobeView } from "../components/map/LunarGlobe";
 import { parseUrlState } from "../lib/urlState";
+import { setFormatLocale } from "../lib/format";
 
 /** Estado inicial opcional desde la URL (?lat=&lon=&fecha=&modo=&vista=). */
 const initial = parseUrlState(typeof window !== "undefined" ? window.location.search : "");
+
+const LANG_KEY = "apollo-atlas-lang";
+/** Idioma inicial: URL (?lang=) → recordado en el navegador → español. */
+function initialLang(): Lang {
+  if (initial.lang) return initial.lang;
+  try {
+    const v = window.localStorage.getItem(LANG_KEY);
+    if (v === "es" || v === "en") return v;
+  } catch {
+    /* almacenamiento no disponible */
+  }
+  return "es";
+}
+function applyLang(lang: Lang) {
+  setFormatLocale(lang);
+  if (typeof document !== "undefined") document.documentElement.lang = lang;
+}
+const startLang = typeof window !== "undefined" ? initialLang() : "es";
+applyLang(startLang);
 
 export const MAX_SCENARIOS = 4;
 
@@ -30,6 +50,7 @@ export interface Coords {
 export type AppMode = "simple" | "advanced";
 export type SceneMode = "globe" | "local";
 export type Sheet = "sites" | "cond" | null;
+export type Lang = "es" | "en";
 
 export interface AppState {
   /** Coordenadas libres en edición (horizonte geométrico). */
@@ -56,6 +77,9 @@ export interface AppState {
   setScene: (s: SceneMode) => void;
   /** Móvil: hoja inferior abierta (panel de sitios o de condiciones). */
   sheet: Sheet;
+  /** Idioma de la interfaz. */
+  lang: Lang;
+  setLang: (l: Lang) => void;
   toggleSheet: (s: Exclude<Sheet, null>) => void;
   closeSheet: () => void;
   /** Retícula selenográfica del globo. */
@@ -99,6 +123,16 @@ export const useAppStore = create<AppState>()((set, get) => ({
   scene: initial.mode === "advanced" ? initial.scene ?? "globe" : "globe",
   setScene: (scene) => set({ scene }),
   sheet: initial.sheet ?? null,
+  lang: startLang,
+  setLang: (lang) => {
+    applyLang(lang);
+    try {
+      window.localStorage.setItem(LANG_KEY, lang);
+    } catch {
+      /* almacenamiento no disponible */
+    }
+    set({ lang });
+  },
   toggleSheet: (sheet) => set((s) => ({ sheet: s.sheet === sheet ? null : sheet })),
   closeSheet: () => set((s) => (s.sheet ? { sheet: null } : s)),
   showGrid: true,

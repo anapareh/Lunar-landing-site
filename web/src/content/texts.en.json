@@ -1,0 +1,18 @@
+{
+  "_note": "English translation of texts.es.json (Simple mode explanations). Keep both files in sync; no figures without a source.",
+  "sun": {
+    "title": "Why does the Sun's elevation matter?",
+    "body": "With no atmosphere, there is no twilight on the Moon: either direct sunlight arrives or it does not. The higher the Sun, the more energy horizontal panels receive. At the south pole the Sun skims the horizon, so a distant mountain or a crater rim can leave a site in darkness.",
+    "sources": []
+  },
+  "earth": {
+    "title": "Why does seeing Earth matter?",
+    "body": "To talk to Earth without relay satellites, the antenna has to 'see' Earth above the horizon. From the Moon, Earth barely moves in the sky, but it wobbles a little (libration). Near the edge of the near side, that wobble makes Earth appear and disappear.",
+    "sources": []
+  },
+  "horizon": {
+    "title": "Geometric horizon and real horizon",
+    "body": "The geometric horizon assumes a smooth, round Moon. The real horizon is set by mountains and craters: at the south pole (85°–90° S) we use the terrain measured by the LOLA altimeter, and there a few kilometres can change the hours of light a lot. Elsewhere, for now, the geometric horizon is used.",
+    "sources": []
+  }
+}

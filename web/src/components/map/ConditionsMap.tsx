@@ -9,7 +9,8 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { Vector3 } from "../../types";
 import { subPoint, surfaceNormal } from "../../lib/geo";
-import { CONDITION_COLOR, CONDITION_LABEL, conditionOf, geometricCondition, type Condition } from "../../lib/conditions";
+import { CONDITION_COLOR, CONDITION_ORDER, conditionOf, geometricCondition, type Condition } from "../../lib/conditions";
+import { useT } from "../../i18n";
 
 export type MapProjection = "global" | "south";
 
@@ -21,7 +22,6 @@ export interface ConditionsMapProps {
 }
 
 const POLAR_SPAN = 30; // grados de colatitud en la vista polar
-const ORDER: Condition[] = ["both", "sun", "earth", "none"];
 
 const hexRgb = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const RGB: Record<Condition, [number, number, number]> = {
@@ -52,10 +52,12 @@ function project(p: MapProjection, lat: number, lon: number, W: number, H: numbe
   return { x: W / 2 + r * Math.sin(a), y: H / 2 - r * Math.cos(a) };
 }
 
-const fmtLL = (ll: { lat: number; lon: number }) =>
-  `${Math.abs(ll.lat).toFixed(1)}°${ll.lat >= 0 ? "N" : "S"} ${Math.abs(ll.lon).toFixed(1)}°${ll.lon >= 0 ? "E" : "O"}`;
+const fmtLL = (ll: { lat: number; lon: number }, west: string) =>
+  `${Math.abs(ll.lat).toFixed(1)}°${ll.lat >= 0 ? "N" : "S"} ${Math.abs(ll.lon).toFixed(1)}°${ll.lon >= 0 ? "E" : west}`;
 
 export function ConditionsMap({ sunDir, earthDir, site, onPick }: ConditionsMapProps) {
+  const t = useT();
+  const m = t.map;
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [proj, setProj] = useState<MapProjection>("global");
@@ -168,7 +170,7 @@ export function ConditionsMap({ sunDir, earthDir, site, onPick }: ConditionsMapP
           ref={canvasRef}
           className="w-full h-full block cursor-crosshair"
           role="img"
-          aria-label={`Mapa de dónde se ven el Sol y la Tierra ahora (${proj === "global" ? "global" : "polo sur"}, horizonte geométrico). Clic para fijar el punto.`}
+          aria-label={m.aria(proj === "global" ? m.global : m.south)}
           onClick={(e) => {
             const { ll } = at(e);
             if (ll) onPick({ lat: Math.round(ll.lat * 100) / 100, lon: Math.round(ll.lon * 100) / 100 });
@@ -176,7 +178,7 @@ export function ConditionsMap({ sunDir, earthDir, site, onPick }: ConditionsMapP
           onMouseMove={(e) => {
             const { x, y, ll } = at(e);
             if (!ll || !sunDir || !earthDir) return setHover(null);
-            setHover({ x, y, text: `${fmtLL(ll)} · ${CONDITION_LABEL[geometricCondition(ll.lat, ll.lon, sunDir, earthDir)]}` });
+            setHover({ x, y, text: `${fmtLL(ll, m.west)} · ${t.conditions.label[geometricCondition(ll.lat, ll.lon, sunDir, earthDir)]}` });
           }}
           onMouseLeave={() => setHover(null)}
         />
@@ -184,9 +186,9 @@ export function ConditionsMap({ sunDir, earthDir, site, onPick }: ConditionsMapP
           type="button"
           onClick={() => setProj(proj === "global" ? "south" : "global")}
           className="absolute top-1 left-1.5 px-1.5 py-0.5 rounded bg-obsidian/85 border border-borderline text-[9px] font-mono text-sky-300 hover:border-sky-400"
-          aria-label={`Cambiar proyección (ahora: ${proj === "global" ? "global" : "polo sur"})`}
+          aria-label={m.toggleAria(proj === "global" ? m.global : m.south)}
         >
-          {proj === "global" ? "GLOBAL ⇄ POLO SUR" : "POLO SUR ⇄ GLOBAL"}
+          {proj === "global" ? m.toggleGlobal : m.toggleSouth}
         </button>
         {hover && (
           <div
@@ -197,21 +199,21 @@ export function ConditionsMap({ sunDir, earthDir, site, onPick }: ConditionsMapP
           </div>
         )}
         <div className="absolute bottom-1 right-1.5 px-1.5 py-0.5 rounded bg-obsidian/85 text-[9px] font-mono text-steel pointer-events-none">
-          Clic para seleccionar punto
+          {m.clickHint}
         </div>
       </div>
-      <ul className="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-2" aria-label="Leyenda">
-        {ORDER.map((c) => (
+      <ul className="grid grid-cols-2 gap-1.5 text-[10px] font-mono pt-2" aria-label={m.legendAria}>
+        {CONDITION_ORDER.map((c) => (
           <li key={c} className="flex items-center gap-1.5 bg-surface px-2 py-1 rounded border border-borderline">
             <span className="w-2.5 h-2.5 rounded-sm shrink-0 border border-white/10" style={{ background: CONDITION_COLOR[c] }} aria-hidden="true" />
-            <span className="text-slate-200">{CONDITION_LABEL[c]}</span>
+            <span className="text-slate-200">{t.conditions.label[c]}</span>
           </li>
         ))}
       </ul>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[9px] font-mono text-steel mt-1.5">
-        <span className="flex items-center gap-1"><i className="w-1.5 h-1.5 rounded-full bg-yellow-200 inline-block" aria-hidden="true" />Punto subsolar</span>
-        <span className="flex items-center gap-1"><i className="w-1.5 h-1.5 rounded-full bg-sky-300 inline-block" aria-hidden="true" />Sub-terrestre</span>
-        <span>Horizonte geométrico (Luna lisa)</span>
+        <span className="flex items-center gap-1"><i className="w-1.5 h-1.5 rounded-full bg-yellow-200 inline-block" aria-hidden="true" />{m.subsolar}</span>
+        <span className="flex items-center gap-1"><i className="w-1.5 h-1.5 rounded-full bg-sky-300 inline-block" aria-hidden="true" />{m.subEarth}</span>
+        <span>{m.geometric}</span>
       </div>
     </div>
   );

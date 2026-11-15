@@ -11,6 +11,7 @@ import { computeSiteMetrics } from "../lib/metrics";
 import { computeSunEarthSeries } from "../lib/sunEarth";
 import { snapToGrid, type HorizonGrid } from "../lib/horizonGrid";
 import { addLunarDays, parseUtc, toIsoUtc } from "../lib/time";
+import { rangeContaining } from "../lib/coverage";
 
 export type ScenarioResult =
   | { status: "ok"; metrics: SiteMetrics; sun: HorizonSample[]; earth: HorizonSample[]; truncated: boolean }
@@ -34,8 +35,9 @@ export function useScenarioMetrics(
       for (const sc of scenarios) {
         try {
           const fullEnd = addLunarDays(sc.date, 1);
-          const end = toIsoUtc(Math.min(parseUtc(fullEnd), parseUtc(ds.coverage.end)));
-          if (parseUtc(sc.date) < parseUtc(ds.coverage.start) || parseUtc(sc.date) >= parseUtc(end)) {
+          const range = rangeContaining(ds.coverage.ranges, sc.date);
+          const end = range ? toIsoUtc(Math.min(parseUtc(fullEnd), parseUtc(range.end))) : sc.date;
+          if (!range || parseUtc(sc.date) >= parseUtc(end)) {
             throw new RangeError("La fecha está fuera del rango de datos cargados");
           }
           const eph = ds.synthetic ? ds.ephemeris : await loadEphemerisWindow(ds.manifest, sc.date, end);

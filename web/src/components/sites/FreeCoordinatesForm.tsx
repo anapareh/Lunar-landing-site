@@ -5,6 +5,8 @@
  */
 import { useEffect, useState, type FormEvent } from "react";
 import type { Coords } from "../../store/useAppStore";
+import { useT } from "../../i18n";
+import { currentLocale } from "../../lib/format";
 
 export interface FreeCoordinatesFormProps {
   value: Coords;
@@ -19,10 +21,12 @@ function parse(text: string, min: number, max: number): number | null {
 }
 
 export function formatLatLon({ lat, lon }: Coords): string {
-  return `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"} ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? "E" : "O"}`;
+  const west = currentLocale() === "en-GB" ? "W" : "O";
+  return `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"} ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? "E" : west}`;
 }
 
 export function FreeCoordinatesForm({ value, onChange, onAddCompare }: FreeCoordinatesFormProps) {
+  const t = useT();
   const [lat, setLat] = useState(String(value.lat));
   const [lon, setLon] = useState(String(value.lon));
   useEffect(() => {
@@ -55,25 +59,25 @@ export function FreeCoordinatesForm({ value, onChange, onAddCompare }: FreeCoord
 
   return (
     <form onSubmit={submit} noValidate className="p-2 border-t border-borderline space-y-1.5">
-      <div className="text-[10px] font-mono text-steel uppercase">Coordenadas personalizadas</div>
+      <div className="text-[10px] font-mono text-steel uppercase">{t.coords.title}</div>
       <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-1.5">
-        {input("lat", "LAT (N +)", lat, setLat, latV !== null, "Latitud −90..90, norte positivo")}
-        {input("lon", "LON (E +)", lon, setLon, lonV !== null, "Longitud −180..180, este positivo")}
+        {input("lat", t.coords.lat, lat, setLat, latV !== null, t.coords.latHint)}
+        {input("lon", t.coords.lon, lon, setLon, lonV !== null, t.coords.lonHint)}
         <button type="submit" disabled={latV === null || lonV === null} className="btn-control px-2 py-1 rounded text-[11px]">
-          Aplicar
+          {t.coords.apply}
         </button>
       </div>
       {onAddCompare && (
         <button
           type="button"
           onClick={onAddCompare}
-          title="Añadir el punto fijado y la fecha actual a la comparativa"
+          title={t.coords.addCompareTitle}
           className="w-full btn-control px-2 py-1 rounded text-[11px] font-mono !text-sky-400"
         >
-          + Comparar este punto y fecha
+          {t.coords.addCompare}
         </button>
       )}
-      <p className="text-[10px] text-steel leading-snug">85°–90° S: relieve real LOLA (nodo más cercano). Resto: horizonte geométrico.</p>
+      <p className="text-[10px] text-steel leading-snug">{t.coords.note}</p>
     </form>
   );
 }

@@ -3,6 +3,7 @@
  * comparativa y modo Simple / Avanzado.
  */
 import { useAppStore, type AppMode } from "../../store/useAppStore";
+import { useT } from "../../i18n";
 
 export interface HudHeaderProps {
   /** true si se está usando la efeméride sintética de desarrollo. */
@@ -12,7 +13,9 @@ export interface HudHeaderProps {
 }
 
 export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
-  const { mode, setMode, scenarios, setCompareOpen } = useAppStore();
+  const { mode, setMode, scenarios, setCompareOpen, lang, setLang } = useAppStore();
+  const t = useT();
+  const h = t.header;
   const modeBtn = (m: AppMode, label: string) => (
     <button
       type="button"
@@ -32,12 +35,10 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
         <div className="max-[380px]:hidden w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-slate-200 to-slate-500 shrink-0" aria-hidden="true" />
         <div className="min-w-0">
           <h1 className="text-[13px] sm:text-sm font-semibold sm:tracking-wide text-telemetry whitespace-nowrap">
-            APOLLO ATLAS<span className="hidden sm:inline"> · Sitios de Alunizaje</span>
+            APOLLO ATLAS<span className="hidden sm:inline"> · {h.title}</span>
           </h1>
           <p className="hidden sm:block text-[10px] font-mono text-steel truncate">
-            {mode === "simple"
-              ? "Explorador interactivo de sitios de alunizaje"
-              : "Iluminación solar, enlace directo con la Tierra (DTE) y horizonte local"}
+            {mode === "simple" ? h.subtitleSimple : h.subtitleAdvanced}
           </p>
         </div>
       </div>
@@ -48,10 +49,10 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
           className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
             synthetic ? "bg-amber-950/40 text-amber-300 border-amber-500/40" : "hidden sm:inline bg-obsidian text-steel border-borderline"
           }`}
-          title={synthetic ? "Modelo simplificado de desarrollo: no son posiciones reales" : "Efeméride calculada con SPICE (NASA/JPL)"}
+          title={synthetic ? h.syntheticTitle : h.spiceTitle}
         >
-          <span className="hidden sm:inline">EFEMÉRIDE </span>
-          {synthetic ? "SINTÉTICA" : "SPICE"}
+          <span className="hidden sm:inline">{h.ephemeris}</span>
+          {synthetic ? h.synthetic : "SPICE"}
         </span>
         <button
           type="button"
@@ -59,16 +60,25 @@ export function HudHeader({ synthetic, coordsLabel }: HudHeaderProps) {
           className="btn-control px-1.5 sm:px-2.5 py-1 rounded text-[11px] sm:text-xs font-medium flex items-center gap-1 sm:gap-1.5"
           aria-haspopup="dialog"
         >
-          <span className="hidden sm:inline">Comparar</span>
-          <span className="sm:hidden">Comp.</span>
+          <span className="hidden sm:inline">{h.compare}</span>
+          <span className="sm:hidden">{h.compareShort}</span>
           <span className="px-1.5 bg-obsidian border border-borderline rounded font-mono text-[11px] text-sky-400 tabular-nums">
             {scenarios.length}
           </span>
         </button>
-        <div className="flex items-center text-[11px] sm:text-xs font-medium rounded border border-borderline bg-obsidian p-0.5 gap-0.5" role="group" aria-label="Nivel de detalle">
-          {modeBtn("simple", "Simple")}
-          {modeBtn("advanced", "Avanzado")}
+        <div className="flex items-center text-[11px] sm:text-xs font-medium rounded border border-borderline bg-obsidian p-0.5 gap-0.5" role="group" aria-label={h.modeAria}>
+          {modeBtn("simple", h.simple)}
+          {modeBtn("advanced", h.advanced)}
         </div>
+        <button
+          type="button"
+          onClick={() => setLang(lang === "es" ? "en" : "es")}
+          title={h.langTitle}
+          aria-label={h.langTitle}
+          className="hidden sm:inline-flex btn-control px-2 py-1 rounded text-xs font-mono font-semibold"
+        >
+          {h.langButton}
+        </button>
       </div>
     </header>
   );
