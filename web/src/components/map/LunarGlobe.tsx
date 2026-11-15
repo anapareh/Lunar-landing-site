@@ -1,6 +1,7 @@
 /**
- * Globo lunar 3D (three.js), estética "consola de dinámica de vuelo" (docs/design/estetica.html)
- * con datos propios.
+ * Globo lunar 3D (three.js), estética de la maqueta "Selene" (mockup/) con datos propios.
+ * La ficha del punto (`card`) flota junto al marcador con una línea guía; los sitios verificados
+ * aparecen como balizas con etiqueta (clic para seleccionarlos).
  *
  * Datos (de nuestra efeméride y métricas):
  * - Iluminación desde la dirección del Sol en el instante mostrado → terminador día/noche.
@@ -14,7 +15,7 @@
  * Arrastrar para girar, rueda para acercar, clic para elegir un punto, flechas con el foco.
  * Textura: CGI Moon Kit (NASA SVS, mosaico LROC WAC). Solo visual. Carga diferida (React.lazy).
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import type { Vector3 } from "../../types";
 import { QUAT_NEARSIDE, QUAT_SOUTH_POLE, bodyToThree, latLonToThree, quatFacing, threeToLatLon } from "./globeMath";
@@ -34,6 +35,22 @@ export interface LunarGlobeProps {
   onPick?: (c: { lat: number; lon: number }) => void;
   /** Petición de vista; `n` cambia en cada petición para poder repetir la misma vista. */
   viewRequest?: { view: GlobeView; n: number };
+  /** Ficha flotante del punto (se coloca junto al marcador). */
+  card?: ReactNode;
+  /** Sitios con coordenadas verificadas. */
+  beacons?: Beacon[];
+  onBeacon?: (id: string) => void;
+  /** Oculta la ficha (p. ej. con una hoja inferior abierta en móvil). */
+  cardHidden?: boolean;
+  /** Se llama al tocar el globo (móvil: cierra las hojas inferiores). */
+  onInteract?: () => void;
+}
+
+export interface Beacon {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
 }
 
 export type GlobeView = "site" | "southPole" | "nearside";
@@ -47,6 +64,8 @@ const NOMINAL = 0x10b981;
 const TEXTURE_URL = `${import.meta.env.BASE_URL}textures/moon/lroc_color_2k.jpg`;
 /** Cámara (radios lunares) y distancia a la que se dibujan el Sol y la Tierra (no a escala). */
 const CAMERA_Z = 7;
+/** Ancho (px) por debajo del cual se usa la disposición móvil (= breakpoint lg). */
+const MOBILE_MAX = 1024;
 const SUN_DIST = 2.3;
 const EARTH_DIST = 2.15;
 
@@ -70,8 +89,24 @@ interface Scene {
   sunRay: THREE.Line;
   dteLine: THREE.Line;
   pin: THREE.Group;
+  /** Punta del marcador en coordenadas locales del globo (null si no hay sitio). */
+  pinTip: THREE.Vector3 | null;
+  beacons: THREE.Group;
+  beaconList: { id: string; tip: THREE.Vector3; label: HTMLElement }[];
   target: THREE.Quaternion | null;
   dirty: boolean;
+}
+
+/** Baliza de un sitio verificado (mástil y punta, sobre +Y). */
+function beaconMesh(): THREE.Group {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color: EARTH });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.06, 6), mat);
+  stem.position.y = 1.03;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 10), mat);
+  head.position.y = 1.062;
+  g.add(stem, head);
+  return g;
 }
 
 /** Retícula selenográfica cada 30°, con ecuador y meridiano 0 resaltados. */
@@ -136,8 +171,18 @@ function sitePin(): THREE.Group {
 }
 
 export default function LunarGlobe(props: LunarGlobeProps) {
-  const { sunDir, earthDir, site, sunVisible, earthVisible, showGrid = true, onPick, viewRequest } = props;
+  const { sunDir, earthDir, site, sunVisible, earthVisible, showGrid = true, onPick, viewRequest, card, beacons, onBeacon, cardHidden = false, onInteract } = props;
+  const cardHiddenRef = useRef(cardHidden);
+  cardHiddenRef.current = cardHidden;
+  const onInteractRef = useRef(onInteract);
+  onInteractRef.current = onInteract;
   const mountRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const leaderRef = useRef<SVGPolylineElement>(null);
+  const anchorRef = useRef<SVGCircleElement>(null);
+  const beaconLayerRef = useRef<HTMLDivElement>(null);
+  const onBeaconRef = useRef(onBeacon);
+  onBeaconRef.current = onBeacon;
   const sceneRef = useRef<Scene | null>(null);
   const labelsRef = useRef<{ sun: HTMLSpanElement | null; earth: HTMLSpanElement | null }>({ sun: null, earth: null });
   const onPickRef = useRef(onPick);
@@ -209,14 +254,25 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     const sunRay = dashedLine(SOLAR, 0.06, 0.04, 0.7);
     const dteLine = dashedLine(EARTH, 0.05, 0.03, 0.85);
     const pin = sitePin();
-    globe.add(sun, earth, sunRay, dteLine, pin);
+    const beaconGroup = new THREE.Group();
+    globe.add(sun, earth, sunRay, dteLine, pin, beaconGroup);
 
-    const s: Scene = { globe, grid, sunLight, sun, earth, sunRay, dteLine, pin, target: null, dirty: true };
+    const s: Scene = {
+      globe, grid, sunLight, sun, earth, sunRay, dteLine, pin,
+      pinTip: null, beacons: beaconGroup, beaconList: [], target: null, dirty: true,
+    };
     sceneRef.current = s;
     const initial = siteRef.current;
     globe.quaternion.copy(initial ? siteQuat(initial.lat, initial.lon) : toQuat(QUAT_NEARSIDE));
 
-    // Tamaño
+    // Tamaño (zoom = factor del usuario sobre la distancia base)
+    let baseZ = CAMERA_Z;
+    let zoom = 1;
+    const zoomBy = (f: number) => {
+      zoom = Math.min(2, Math.max(2.4 / baseZ, zoom * f));
+      camera.position.z = baseZ * zoom;
+      s.dirty = true;
+    };
     const resize = () => {
       const w = mount.clientWidth;
       const h = mount.clientHeight;
@@ -224,6 +280,12 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
       camera.aspect = w / Math.max(h, 1);
+      // En vertical se aleja la cámara para que quepan el globo, el Sol y la Tierra (maqueta móvil)
+      baseZ = Math.min(18, CAMERA_Z / Math.min(1, camera.aspect));
+      camera.position.z = baseZ * zoom;
+      // Móvil: el globo sube un poco para dejar sitio a la ficha sobre el pie
+      if (w < MOBILE_MAX) camera.setViewOffset(w, h, 0, Math.round(h * 0.07), w, h);
+      else camera.clearViewOffset();
       camera.updateProjectionMatrix();
       s.dirty = true;
     };
@@ -233,7 +295,15 @@ export default function LunarGlobe(props: LunarGlobeProps) {
 
     // Interacción: arrastrar = girar; clic sin arrastre = elegir punto; rueda = zoom; flechas = girar.
     const el = renderer.domElement;
-    let drag: { x: number; y: number; moved: number } | null = null;
+    // Punteros activos: uno = girar / tocar; dos = pellizcar para zoom
+    const ptrs = new Map<number, { x: number; y: number }>();
+    let moved = 0;
+    let pinch = 0;
+    let multi = false;
+    const pinchDist = () => {
+      const [a, b] = [...ptrs.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
     const spin = (dx: number, dy: number) => {
       const k = 0.005 * (camera.position.z / CAMERA_Z);
       globe.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * k));
@@ -242,19 +312,39 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       s.dirty = true;
     };
     const onDown = (e: PointerEvent) => {
-      drag = { x: e.clientX, y: e.clientY, moved: 0 };
       el.setPointerCapture(e.pointerId);
+      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (ptrs.size === 1) {
+        moved = 0;
+        multi = false;
+      } else {
+        multi = true;
+        pinch = pinchDist();
+      }
+      onInteractRef.current?.();
     };
     const onMove = (e: PointerEvent) => {
-      if (!drag) return;
-      const dx = e.clientX - drag.x;
-      const dy = e.clientY - drag.y;
-      drag = { x: e.clientX, y: e.clientY, moved: drag.moved + Math.abs(dx) + Math.abs(dy) };
+      const p = ptrs.get(e.pointerId);
+      if (!p) return;
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+      p.x = e.clientX;
+      p.y = e.clientY;
+      if (ptrs.size === 2) {
+        const d = pinchDist();
+        if (pinch > 0 && d > 0) zoomBy(pinch / d);
+        pinch = d;
+        return;
+      }
+      moved += Math.abs(dx) + Math.abs(dy);
       spin(dx, dy);
     };
+    const onCancel = (e: PointerEvent) => {
+      ptrs.delete(e.pointerId);
+    };
     const onUp = (e: PointerEvent) => {
-      const wasClick = drag !== null && drag.moved < 5;
-      drag = null;
+      const wasClick = ptrs.size === 1 && moved < 8 && !multi;
+      ptrs.delete(e.pointerId);
       if (!wasClick || !onPickRef.current) return;
       const rect = el.getBoundingClientRect();
       const ndc = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
@@ -268,8 +358,7 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      camera.position.z = Math.min(14, Math.max(2.4, camera.position.z * (e.deltaY > 0 ? 1.1 : 1 / 1.1)));
-      s.dirty = true;
+      zoomBy(e.deltaY > 0 ? 1.1 : 1 / 1.1);
     };
     const onKey = (e: KeyboardEvent) => {
       const step = 12;
@@ -282,6 +371,7 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onCancel);
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("keydown", onKey);
 
@@ -301,6 +391,85 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       label.style.transform = `translate(${((tmp.x + 1) / 2) * mount.clientWidth}px, ${((1 - tmp.y) / 2) * mount.clientHeight}px) translate(-50%, calc(-100% - 10px))`;
     };
 
+    // Ficha del punto: junto a la punta del marcador, con línea guía en codo (como la maqueta)
+    const camDir = new THREE.Vector3();
+    const placeCard = () => {
+      const box = cardRef.current;
+      const line = leaderRef.current;
+      const dot = anchorRef.current;
+      if (!box || !line || !dot) return;
+      const hide = () => {
+        box.style.opacity = "0";
+        box.style.pointerEvents = "none";
+        line.style.opacity = "0";
+        dot.style.opacity = "0";
+      };
+      if (!s.pinTip || !s.pin.visible || box.childElementCount === 0 || cardHiddenRef.current) return hide();
+      const tip = globe.localToWorld(s.pinTip.clone());
+      const facing = tip.clone().normalize().dot(camDir.copy(camera.position).normalize());
+      if (facing < 0.05) return hide();
+      const alpha = Math.min(1, (facing - 0.05) * 4.5);
+      tip.project(camera);
+      const vw = mount.clientWidth;
+      const vh = mount.clientHeight;
+      const px = ((tip.x + 1) / 2) * vw;
+      const py = ((1 - tip.y) / 2) * vh;
+      const mobile = vw < MOBILE_MAX;
+      box.style.width = mobile ? `${Math.min(vw - 16, 420)}px` : "";
+      const popW = box.offsetWidth || 300;
+      const popH = box.offsetHeight || 160;
+      let bx: number;
+      let by: number;
+      let pts: string;
+      if (mobile) {
+        // Móvil: centrada justo encima del pie, con línea guía recta hasta su borde superior
+        const footH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--foot-h")) || 110;
+        bx = (vw - popW) / 2;
+        by = vh - footH - 16 - popH;
+        const cx = Math.min(Math.max(px, bx + 16), bx + popW - 16);
+        pts = `${px.toFixed(1)},${py.toFixed(1)} ${cx.toFixed(1)},${by.toFixed(1)}`;
+      } else {
+        const right = px < vw * 0.5;
+        const elbowX = right ? px + 26 : px - 26;
+        const elbowY = py - 24;
+        bx = right ? elbowX + 12 : elbowX - popW - 12;
+        by = elbowY - 18;
+        bx = Math.max(12, Math.min(vw - popW - 12, bx));
+        by = Math.max(70, Math.min(vh - popH - 110, by));
+        const cx = right ? bx : bx + popW;
+        const cy = by + 16;
+        pts = `${px.toFixed(1)},${py.toFixed(1)} ${elbowX.toFixed(1)},${elbowY.toFixed(1)} ${cx.toFixed(1)},${cy.toFixed(1)}`;
+      }
+      box.style.transform = `translate(${bx}px, ${by}px)`;
+      box.style.opacity = alpha.toFixed(2);
+      box.style.pointerEvents = alpha > 0.25 ? "auto" : "none";
+      dot.setAttribute("cx", px.toFixed(1));
+      dot.setAttribute("cy", py.toFixed(1));
+      dot.style.opacity = alpha.toFixed(2);
+      line.setAttribute("points", pts);
+      line.style.opacity = (alpha * 0.85).toFixed(2);
+    };
+    const placeBeacons = () => {
+      camDir.copy(camera.position).normalize();
+      for (const b of s.beaconList) {
+        const w = globe.localToWorld(b.tip.clone());
+        const facing = w.clone().normalize().dot(camDir);
+        if (facing < 0.14) {
+          b.label.style.opacity = "0";
+          b.label.style.pointerEvents = "none";
+          continue;
+        }
+        w.project(camera);
+        b.label.style.transform = `translate(${((w.x + 1) / 2) * mount.clientWidth}px, ${((1 - w.y) / 2) * mount.clientHeight}px) translate(-50%, -100%)`;
+        b.label.style.opacity = Math.min(1, (facing - 0.14) * 3.2).toFixed(2);
+        b.label.style.pointerEvents = "auto";
+      }
+    };
+    const cardObserver = new ResizeObserver(() => {
+      s.dirty = true;
+    });
+    if (cardRef.current) cardObserver.observe(cardRef.current);
+
     // Bucle: solo dibuja si algo ha cambiado o hay una transición de vista en curso.
     let raf = 0;
     const loop = () => {
@@ -318,15 +487,19 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       renderer.render(scene, camera);
       placeLabel(labelsRef.current.sun, sun);
       placeLabel(labelsRef.current.earth, earth);
+      placeCard();
+      placeBeacons();
     };
     raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      cardObserver.disconnect();
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onCancel);
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("keydown", onKey);
       scene.traverse((o) => {
@@ -345,6 +518,35 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     };
   }, []);
 
+  // ---- Balizas de sitios verificados ----
+  useEffect(() => {
+    const s = sceneRef.current;
+    const layer = beaconLayerRef.current;
+    if (!s || !layer) return;
+    s.beacons.clear();
+    layer.replaceChildren();
+    s.beaconList = (beacons ?? []).map((b) => {
+      const pos = new THREE.Vector3(...latLonToThree(b.lat, b.lon));
+      const m = beaconMesh();
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pos);
+      s.beacons.add(m);
+      const label = document.createElement("button");
+      label.type = "button";
+      label.className = "beacon-label";
+      label.textContent = b.name;
+      label.style.opacity = "0";
+      label.addEventListener("click", () => onBeaconRef.current?.(b.id));
+      layer.appendChild(label);
+      return { id: b.id, tip: pos.clone().multiplyScalar(1.07), label };
+    });
+    s.dirty = true;
+  }, [beacons]);
+
+  // ---- Ficha oculta / visible ----
+  useEffect(() => {
+    if (sceneRef.current) sceneRef.current.dirty = true;
+  }, [cardHidden]);
+
   // ---- Retícula ----
   useEffect(() => {
     const s = sceneRef.current;
@@ -361,7 +563,11 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     if (sitePos) {
       s.pin.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sitePos);
       s.pin.visible = true;
-    } else s.pin.visible = false;
+      s.pinTip = sitePos.clone().multiplyScalar(1.144);
+    } else {
+      s.pin.visible = false;
+      s.pinTip = null;
+    }
 
     if (sunDir) {
       const d = new THREE.Vector3(...bodyToThree(sunDir)).normalize();
@@ -417,7 +623,7 @@ export default function LunarGlobe(props: LunarGlobeProps) {
     <div
       className="relative w-full h-full cursor-grab active:cursor-grabbing touch-none"
       ref={mountRef}
-      role="img"
+      role="group"
       aria-label={`Globo lunar iluminado desde la dirección del Sol, con el Sol y la Tierra en su dirección (no a escala). Sitio seleccionado: ${label}. Enlace con la Tierra: ${earthVisible ? "visible" : "sin línea de visión"}. Arrastra para girar, rueda para acercar, clic para elegir un punto; con el foco en el globo, las flechas también lo giran.`}
     >
       <span className={labelClass} ref={(n) => { labelsRef.current.sun = n; }} hidden>
@@ -426,6 +632,14 @@ export default function LunarGlobe(props: LunarGlobeProps) {
       <span className={labelClass} ref={(n) => { labelsRef.current.earth = n; }} hidden>
         <i className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" aria-hidden="true" /> Tierra
       </span>
+      <div ref={beaconLayerRef} className="absolute inset-0 pointer-events-none overflow-hidden" />
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <polyline ref={leaderRef} fill="none" stroke="#38bdf8" strokeWidth={1.25} strokeDasharray="3 2" opacity={0} />
+        <circle ref={anchorRef} r={3.5} fill="#10b981" stroke="#0a0d12" strokeWidth={1.5} opacity={0} />
+      </svg>
+      <div ref={cardRef} className="absolute top-0 left-0 transition-opacity duration-150 cursor-auto" style={{ opacity: 0 }}>
+        {card}
+      </div>
     </div>
   );
 }

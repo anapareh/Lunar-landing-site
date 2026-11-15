@@ -8,8 +8,10 @@ import { useEffect, useRef, type ReactNode } from "react";
 import type { Scenario } from "../../types";
 import type { Dataset } from "../../hooks/useEphemeris";
 import { useScenarioMetrics, type ScenarioResult } from "../../hooks/useScenarioMetrics";
+import type { HorizonGrid } from "../../lib/horizonGrid";
 import { bestIndices, shiftScenario } from "../../lib/compare";
 import { formatDeg, formatDuration, formatHours, formatPercent, formatUtc } from "../../lib/format";
+import { summarize } from "../../lib/summary";
 import { MAX_SCENARIOS, useAppStore } from "../../store/useAppStore";
 import { HorizonLevelBadge } from "../common/HorizonLevelBadge";
 import { formatLatLon } from "../sites/FreeCoordinatesForm";
@@ -28,46 +30,57 @@ interface RowDef {
 const signed = (d: number) => `${d >= 0 ? "+" : ""}${formatDeg(d)}`;
 const countdown = (visible: boolean, toSet: number | null, toRise: number | null, set: string, rise: string) => {
   const h = visible ? toSet : toRise;
-  return `${visible ? set : rise}: ${h === null ? "no ocurre en la ventana" : formatDuration(h)}`;
+  return h === null ? (visible ? "no se pone en todo el periodo" : "no sale en todo el periodo") : `${visible ? set : rise} ${formatDuration(h)}`;
 };
 
 const ROWS: RowDef[] = [
-  { label: "Horizonte", render: (r) => <HorizonLevelBadge level={r.metrics.horizonLevel} /> },
   {
-    label: "Ciclo (luz / Tierra)",
+    label: "En resumen",
+    render: (r) => {
+      const t = summarize(r.metrics);
+      return (
+        <span className="font-sans text-[11px] text-slate-200 leading-snug whitespace-normal block">
+          {t.sun} {t.light} {t.earth}
+        </span>
+      );
+    },
+  },
+  { label: "Relieve usado", render: (r) => <HorizonLevelBadge level={r.metrics.horizonLevel} /> },
+  {
+    label: "Los 29,5 días (luz / Tierra)",
     render: (r, s) => <VisibilityStrip sun={r.sun} earth={r.earth} label={`Luz y visibilidad de la Tierra durante el día lunar de ${s.label}`} />,
   },
-  { group: "sun", label: "Elevación solar en la fecha", render: (r) => signed(r.metrics.sun.elevationNowDeg) },
-  { group: "sun", label: "Disco solar visible", render: (r) => formatPercent(r.metrics.sun.visibleFractionNow) },
+  { group: "sun", label: "Altura del Sol al aterrizar", render: (r) => signed(r.metrics.sun.elevationNowDeg) },
+  { group: "sun", label: "Parte del Sol visible al aterrizar", render: (r) => formatPercent(r.metrics.sun.visibleFractionNow) },
   {
     group: "sun",
-    label: "Sol",
-    render: (r) => countdown(r.metrics.sun.visibleNow, r.metrics.sun.hoursToSet, r.metrics.sun.hoursToRise, "ocaso en", "alba en"),
+    label: "Próximo ocaso o amanecer",
+    render: (r) => countdown(r.metrics.sun.visibleNow, r.metrics.sun.hoursToSet, r.metrics.sun.hoursToRise, "se pone en", "amanece en"),
   },
   {
     group: "sun",
-    label: "Luz en la ventana",
+    label: "Horas de sol en los 29,5 días",
     render: (r) => `${formatHours(r.metrics.sun.visibleHours)} (${formatPercent(r.metrics.sun.visibleHours / r.metrics.windowHours)})`,
     num: (r) => r.metrics.sun.visibleHours,
   },
-  { group: "sun", label: "Elevación solar máxima", render: (r) => signed(r.metrics.sun.maxElevationDeg), num: (r) => r.metrics.sun.maxElevationDeg },
+  { group: "sun", label: "Altura máxima del Sol", render: (r) => signed(r.metrics.sun.maxElevationDeg), num: (r) => r.metrics.sun.maxElevationDeg },
   {
     group: "earth",
-    label: "Tierra en la fecha",
+    label: "Tierra al aterrizar",
     render: (r) => (
       <span className={r.metrics.earth.visibleNow ? "text-sky-400" : "text-red-400"}>
-        {signed(r.metrics.earth.elevationNowDeg)} · {r.metrics.earth.visibleNow ? "DTE directo" : "sin línea directa"}
+        {signed(r.metrics.earth.elevationNowDeg)} · {r.metrics.earth.visibleNow ? "visible: enlace directo" : "oculta: sin enlace directo"}
       </span>
     ),
   },
   {
     group: "earth",
-    label: "Tierra",
+    label: "Cuándo se pone o sale la Tierra",
     render: (r) => countdown(r.metrics.earth.visibleNow, r.metrics.earth.hoursToSet, r.metrics.earth.hoursToRise, "se pone en", "sale en"),
   },
   {
     group: "earth",
-    label: "Tierra visible en la ventana",
+    label: "Horas con la Tierra a la vista",
     render: (r) => `${formatHours(r.metrics.earth.visibleHours)} (${formatPercent(r.metrics.earth.visibleHours / r.metrics.windowHours)})`,
     num: (r) => r.metrics.earth.visibleHours,
   },
@@ -75,13 +88,15 @@ const ROWS: RowDef[] = [
 
 export interface CompareModalProps {
   ds: Dataset;
+  /** Rejilla LOLA del polo sur (si está cargada): aplica el horizonte del nodo. */
+  grid?: HorizonGrid | null;
   /** Lleva un escenario al globo (coordenadas + fecha). */
   onLoad: (s: Scenario) => void;
 }
 
-export function CompareModal({ ds, onLoad }: CompareModalProps) {
+export function CompareModal({ ds, grid = null, onLoad }: CompareModalProps) {
   const { compareOpen, setCompareOpen, scenarios, removeScenario, addScenario, notify } = useAppStore();
-  const results = useScenarioMetrics(ds, scenarios, compareOpen);
+  const results = useScenarioMetrics(ds, scenarios, compareOpen, grid);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -116,7 +131,7 @@ export function CompareModal({ ds, onLoad }: CompareModalProps) {
               Comparativa de escenarios de alunizaje
             </h2>
             <p className="text-xs text-steel mt-0.5">
-              Cada escenario se evalúa durante un día lunar desde su fecha. Destacado = mejor valor de la fila.
+              Cada columna es un lugar y una fecha de aterrizaje; se simulan los 29,5 días siguientes (un día lunar). ▲ = mejor valor de la fila.
             </p>
           </div>
           <button ref={closeRef} type="button" onClick={() => setCompareOpen(false)} className="btn-control px-2.5 py-1 rounded text-xs font-medium">
@@ -184,7 +199,7 @@ export function CompareModal({ ds, onLoad }: CompareModalProps) {
                             ) : (
                               <>
                                 {row.render(r, s)}
-                                {isBest && <span className="sr-only"> (mejor)</span>}
+                                {isBest && <span className="ml-1 text-emerald-400" aria-label="(mejor)">▲</span>}
                               </>
                             )}
                           </td>
@@ -199,7 +214,9 @@ export function CompareModal({ ds, onLoad }: CompareModalProps) {
         </div>
 
         <div className="p-3 border-t border-borderline bg-obsidian/80 text-xs text-steel">
-          Coordenadas libres con horizonte geométrico. Con perfiles LOLA, el relieve puede cambiar las horas de luz y de Tierra visible.
+          <span className="inline-flex items-center gap-1 mr-3"><i className="w-3 h-2 inline-block bg-amber-500/80" aria-hidden="true" /> luz solar</span>
+          <span className="inline-flex items-center gap-1 mr-3"><i className="w-3 h-2 inline-block bg-sky-600" aria-hidden="true" /> Tierra a la vista</span>
+          Polo sur (85°–90° S): relieve LOLA del nodo de la rejilla. Resto: Luna lisa; el relieve real puede cambiar las horas de luz y de Tierra visible.
         </div>
       </div>
     </div>

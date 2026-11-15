@@ -2,13 +2,15 @@
 
 - ``ephemeris/<año>.json``: vectores Sol/Tierra de un año.
 - ``manifest.json``: índice de todo lo que hay en ``web/public/data/``.
-- ``horizons/<site_id>.json`` y ``sites.json``: pendientes.
+- ``horizons/<site_id>.json``: perfil de horizonte de un sitio.
+- ``sites.json``: copia de ``data/sites.json`` (los sitios sin coordenadas siguen sin ellas).
 """
 
 from __future__ import annotations
 
 import json
 import subprocess
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -18,7 +20,7 @@ from .horizon import HorizonProfile
 from .sites import Site
 
 DEFAULT_OUTPUT_DIR = WEB_DATA_DIR
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
 
 
 def iso_utc(t: datetime) -> str:
@@ -81,6 +83,7 @@ def write_manifest(
         eph.append({"file": f"ephemeris/{p.name}", "start": d["start"], "end": iso_utc(end)})
     eph.sort(key=lambda e: e["start"])
     horizons = sorted(p.stem for p in (out_dir / "horizons").glob("*.json"))
+    grids = [{"id": p.stem, "file": f"horizon_grid/{p.name}"} for p in sorted((out_dir / "horizon_grid").glob("*.json"))]
     manifest = {
         "contract_version": CONTRACT_VERSION,
         "generated_at": iso_utc(datetime.now(timezone.utc).replace(microsecond=0)),
@@ -90,6 +93,7 @@ def write_manifest(
         "kernels": kernels or [],
         "ephemeris": eph,
         "horizons": horizons,
+        "horizon_grids": grids,
         "basemaps": [],
     }
     path = out_dir / "manifest.json"
@@ -122,6 +126,11 @@ def write_horizon(profile: HorizonProfile, out_dir: Path = DEFAULT_OUTPUT_DIR) -
     return _dump(out_dir / "horizons" / f"{profile.site_id}.json", horizon_payload(profile))
 
 
+def sites_payload(sites: list[Site]) -> dict:
+    """Raíz de ``sites.json`` (mismos campos que la fuente, longitud ya normalizada)."""
+    return {"contract_version": CONTRACT_VERSION, "sites": [asdict(s) for s in sites]}
+
+
 def write_sites(sites: list[Site], out_dir: Path = DEFAULT_OUTPUT_DIR) -> Path:
-    """Escribe ``sites.json``. TODO."""
-    raise NotImplementedError("TODO: write_sites")
+    """Escribe ``sites.json`` para la web (copia validada de ``data/sites.json``)."""
+    return _dump(out_dir / "sites.json", sites_payload(sites))

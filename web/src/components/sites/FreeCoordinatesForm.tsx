@@ -1,6 +1,7 @@
 /**
- * Coordenadas libres: latitud planetocéntrica y longitud este positiva (convención del contrato).
- * Sin perfil de relieve: se aplica el horizonte geométrico.
+ * Coordenadas personalizadas (compacto, maqueta "Selene"): latitud planetocéntrica y longitud
+ * este positiva (convención del contrato). En 85°–90° S se evalúa el nodo LOLA más cercano;
+ * en el resto, horizonte geométrico.
  */
 import { useEffect, useState, type FormEvent } from "react";
 import type { Coords } from "../../store/useAppStore";
@@ -37,62 +38,42 @@ export function FreeCoordinatesForm({ value, onChange, onAddCompare }: FreeCoord
     if (latV !== null && lonV !== null) onChange({ lat: latV, lon: lonV });
   }
 
-  const field = (id: string, label: string, v: string, set: (s: string) => void, ok: boolean, hint: string) => (
-    <div
-      className={`bg-obsidian border rounded px-2 py-1 transition-colors focus-within:border-sky-400 ${
-        ok ? "border-borderline" : "border-red-500/70"
-      }`}
-    >
-      <label htmlFor={id} className="block text-[10px] font-mono text-steel">
-        {label}
-      </label>
+  const input = (id: string, label: string, v: string, set: (s: string) => void, ok: boolean, hint: string) => (
+    <label htmlFor={id} className="flex flex-col gap-0.5">
+      <span className="text-[9px] font-mono text-steel">{label}</span>
       <input
         id={id}
         inputMode="decimal"
         value={v}
         onChange={(e) => set(e.target.value)}
         aria-invalid={!ok}
-        aria-describedby={`${id}-hint`}
-        className="w-full bg-transparent text-xs font-mono font-semibold text-telemetry tabular-nums outline-none"
+        title={hint}
+        className={`coord-input w-full ${ok ? "" : "!border-red-500/70"}`}
       />
-      <span id={`${id}-hint`} className={`block text-[9px] font-mono ${ok ? "text-slate-500" : "text-red-300"}`}>
-        {hint}
-      </span>
-    </div>
+    </label>
   );
 
   return (
-    <form onSubmit={submit} noValidate className="p-2.5 border-b border-borderline bg-obsidian/50">
-      <div className="flex items-center justify-between text-[11px] mb-1.5">
-        <span className="text-steel font-medium">Coordenadas selenográficas</span>
-        <span className="font-mono text-telemetry tabular-nums">{formatLatLon(value)}</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 mb-2">
-        {field("lat", "LAT (−90° / +90°)", lat, setLat, latV !== null, latV === null ? "Fuera de rango" : "Norte +")}
-        {field("lon", "LON (−180° / +180°)", lon, setLon, lonV !== null, lonV === null ? "Fuera de rango" : "Este +")}
-      </div>
-      <div className="flex gap-1.5">
-        <button
-          type="submit"
-          disabled={latV === null || lonV === null}
-          className="flex-1 btn-control py-1.5 px-2.5 rounded text-xs font-medium text-telemetry"
-        >
-          Fijar coordenadas
+    <form onSubmit={submit} noValidate className="p-2 border-t border-borderline space-y-1.5">
+      <div className="text-[10px] font-mono text-steel uppercase">Coordenadas personalizadas</div>
+      <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-1.5">
+        {input("lat", "LAT (N +)", lat, setLat, latV !== null, "Latitud −90..90, norte positivo")}
+        {input("lon", "LON (E +)", lon, setLon, lonV !== null, "Longitud −180..180, este positivo")}
+        <button type="submit" disabled={latV === null || lonV === null} className="btn-control px-2 py-1 rounded text-[11px]">
+          Aplicar
         </button>
-        {onAddCompare && (
-          <button
-            type="button"
-            onClick={onAddCompare}
-            title="Añadir el punto fijado y la fecha actual a la comparativa"
-            className="btn-control px-2.5 py-1.5 rounded text-xs font-mono !text-sky-400 hover:!text-sky-300"
-          >
-            + Comparar
-          </button>
-        )}
       </div>
-      <p className="mt-1.5 text-[11px] text-steel leading-snug">
-        Coordenadas libres: sin relieve, se usa el horizonte geométrico.
-      </p>
+      {onAddCompare && (
+        <button
+          type="button"
+          onClick={onAddCompare}
+          title="Añadir el punto fijado y la fecha actual a la comparativa"
+          className="w-full btn-control px-2 py-1 rounded text-[11px] font-mono !text-sky-400"
+        >
+          + Comparar este punto y fecha
+        </button>
+      )}
+      <p className="text-[10px] text-steel leading-snug">85°–90° S: relieve real LOLA (nodo más cercano). Resto: horizonte geométrico.</p>
     </form>
   );
 }

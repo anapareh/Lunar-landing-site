@@ -1,7 +1,7 @@
 {
-  "contract_version": "1.0.0",
-  "generated_at": "2026-11-14T11:53:01Z",
-  "pipeline_commit": "c35473c",
+  "contract_version": "1.1.0",
+  "generated_at": "2026-11-14T13:37:38Z",
+  "pipeline_commit": "b868034",
   "frame": "MOON_ME",
   "aberration_correction": "LT+S",
   "kernels": [
@@ -29,5 +29,11 @@
     }
   ],
   "horizons": [],
+  "horizon_grids": [
+    {
+      "id": "south_5km",
+      "file": "horizon_grid/south_5km.json"
+    }
+  ],
   "basemaps": []
 }

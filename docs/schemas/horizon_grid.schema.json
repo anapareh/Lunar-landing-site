@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lunarnav.local/schemas/horizon_grid.schema.json",
+  "title": "horizon_grid/<id>.json (contrato v1.1)",
+  "description": "Metadatos de una rejilla de horizontes; los perfiles van en data_file (int16 little-endian). La longitud de surface_height_m = (2·half_size+1)² se comprueba en los tests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version", "id", "projection", "sphere_radius_m", "spacing_m", "half_size", "max_lat",
+    "azimuth_step_deg", "value_scale_deg", "missing_value", "data_file", "node_count", "observer_height_m",
+    "max_distance_km", "dem", "method_version", "surface_height_m"
+  ],
+  "properties": {
+    "contract_version": { "type": "string", "pattern": "^1\\.\\d+\\.\\d+$" },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "projection": { "const": "polar_stereographic_south" },
+    "sphere_radius_m": { "type": "number", "exclusiveMinimum": 0 },
+    "spacing_m": { "type": "number", "exclusiveMinimum": 0 },
+    "half_size": { "type": "integer", "minimum": 0 },
+    "max_lat": { "type": "number", "minimum": -90, "maximum": 0 },
+    "azimuth_step_deg": { "type": "number", "exclusiveMinimum": 0, "maximum": 360 },
+    "value_scale_deg": { "type": "number", "exclusiveMinimum": 0 },
+    "missing_value": { "type": "integer" },
+    "data_file": { "type": "string", "pattern": "^horizon_grid/.+\\.bin$" },
+    "node_count": { "type": "integer", "minimum": 0 },
+    "observer_height_m": { "type": "number", "minimum": 0 },
+    "max_distance_km": { "type": "number", "exclusiveMinimum": 0 },
+    "dem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product", "resolution_m", "source_url"],
+      "properties": {
+        "product": { "type": "string", "minLength": 1 },
+        "resolution_m": { "type": "number", "exclusiveMinimum": 0 },
+        "source_url": { "type": ["string", "null"] }
+      }
+    },
+    "method_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "surface_height_m": { "type": "array", "items": { "type": ["number", "null"] } }
+  }
+}

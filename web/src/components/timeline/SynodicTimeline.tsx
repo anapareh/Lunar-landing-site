@@ -1,34 +1,42 @@
 /**
- * Franja del ciclo (un día lunar desde la fecha elegida) para el punto seleccionado:
- * - arriba, luz solar (ámbar; más intensa cuanto más alto está el Sol y más disco se ve);
- * - abajo, visibilidad de la Tierra (cian = visible, rojo oscuro = no visible).
- * Mismo criterio de visibilidad que las métricas (lib/horizon.ts). Se puede arrastrar o mover con
- * el teclado (←/→ 1 h, RePág/AvPág 1 día, Inicio/Fin).
+ * Franja del ciclo (un día lunar desde la fecha elegida) para el punto seleccionado, en tres filas:
+ * 1. condición (Sol y Tierra / solo Sol / solo Tierra / ninguno; lib/conditions.ts);
+ * 2. luz solar (ámbar, más intensa cuanto más alto está el Sol y más disco se ve);
+ * 3. visibilidad de la Tierra.
+ * Mismo criterio de visibilidad que las métricas (lib/horizon.ts). Se arrastra o se mueve con el
+ * teclado (←/→ 1 h, RePág/AvPág 1 día, Inicio/Fin). Se usa grande en el panel derecho y fina en el pie.
  */
 import { useEffect, useRef } from "react";
 import type { HorizonSample } from "../../types";
 import { isVisible } from "../../lib/horizon";
-import { formatUtc } from "../../lib/format";
+import { CONDITION_COLOR, conditionOf } from "../../lib/conditions";
+import { formatDayMonth, formatUtc } from "../../lib/format";
 import { columnSamples, fractionOf, timeAtFraction } from "../../lib/timeline";
-import { MS_PER_DAY, MS_PER_HOUR, SYNODIC_MONTH_DAYS, parseUtc, toIsoUtc } from "../../lib/time";
+import { MS_PER_DAY, MS_PER_HOUR, parseUtc, toIsoUtc } from "../../lib/time";
 
 export interface SynodicTimelineProps {
   sun: HorizonSample[];
   earth: HorizonSample[];
   cursor: string;
   onScrub: (iso: string) => void;
+  /** Clase de altura del lienzo (p. ej. "h-24" o "h-10"). */
+  heightClass?: string;
+  /** Fechas de inicio y fin dentro del lienzo. */
+  dateLabels?: boolean;
+  label?: string;
 }
 
-const nf1 = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const SUN_DARK = "#161b26";
+const EARTH_ON = CONDITION_COLOR.earth;
+const EARTH_OFF = "#3f151d";
 
-export function SynodicTimeline({ sun, earth, cursor, onScrub }: SynodicTimelineProps) {
+export function SynodicTimeline({ sun, earth, cursor, onScrub, heightClass = "h-10", dateLabels = false, label = "Instante dentro del día lunar" }: SynodicTimelineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const t0 = sun.length ? parseUtc(sun[0].time) : 0;
   const t1 = sun.length ? parseUtc(sun[sun.length - 1].time) : 0;
   const cursorMs = parseUtc(cursor);
 
-  // Dibujo
   useEffect(() => {
     const canvas = canvasRef.current;
     const box = boxRef.current;
@@ -37,39 +45,54 @@ export function SynodicTimeline({ sun, earth, cursor, onScrub }: SynodicTimeline
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = box.clientWidth;
       const h = box.clientHeight;
+      if (w === 0 || h === 0) return;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#0a0d12";
+      ctx.fillRect(0, 0, w, h);
       const cols = Math.max(1, Math.floor(w));
       const idx = columnSamples(sun.length, cols);
       const colW = w / cols;
+      const r1 = h * 0.48;
+      const r2 = h * 0.24;
+      const gap = 2;
       idx.forEach((i, c) => {
         const s = sun[i];
         const lit = isVisible(s);
-        const strength = 0.4 + 0.6 * Math.min(1, Math.max(0, s.elevation_deg) / 45);
-        ctx.fillStyle = lit ? `rgba(245,158,11,${(s.visible_fraction * strength).toFixed(3)})` : "#0f141d";
-        ctx.fillRect(c * colW, 0, colW + 0.6, h * 0.5);
-        ctx.fillStyle = isVisible(earth[i]) ? "#0284c7" : "#2a1219";
-        ctx.fillRect(c * colW, h * 0.56, colW + 0.6, h * 0.44);
+        const seen = isVisible(earth[i]);
+        ctx.fillStyle = CONDITION_COLOR[conditionOf(lit, seen)];
+        ctx.fillRect(c * colW, 0, colW + 0.6, r1);
+        const strength = 0.45 + 0.55 * Math.min(1, Math.max(0, s.elevation_deg) / 45);
+        ctx.fillStyle = lit ? `rgba(251,191,36,${(Math.max(0.25, s.visible_fraction) * strength).toFixed(3)})` : SUN_DARK;
+        ctx.fillRect(c * colW, r1 + gap, colW + 0.6, r2 - gap);
+        ctx.fillStyle = seen ? EARTH_ON : EARTH_OFF;
+        ctx.fillRect(c * colW, r1 + r2 + gap, colW + 0.6, h - r1 - r2 - gap);
       });
       // Marcas de día (cada 24 h desde el inicio)
-      ctx.fillStyle = "rgba(10,13,18,0.55)";
-      for (let t = t0 + MS_PER_DAY; t < t1; t += MS_PER_DAY) {
-        ctx.fillRect(fractionOf(t, t0, t1) * w, 0, 1, h);
+      ctx.fillStyle = "rgba(10,13,18,0.5)";
+      for (let t = t0 + MS_PER_DAY; t < t1; t += MS_PER_DAY) ctx.fillRect(fractionOf(t, t0, t1) * w, 0, 1, h);
+      if (dateLabels) {
+        ctx.font = "9px 'JetBrains Mono', ui-monospace, monospace";
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.textBaseline = "top";
+        ctx.fillText(formatDayMonth(t0), 4, 3);
+        ctx.textAlign = "right";
+        ctx.fillText(formatDayMonth(t1), w - 4, 3);
+        ctx.textAlign = "left";
       }
       // Cabezal
       const x = fractionOf(cursorMs, t0, t1) * w;
-      ctx.fillStyle = "#eef2f6";
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(x - 1, 0, 2, h);
     };
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(box);
     return () => ro.disconnect();
-  }, [sun, earth, t0, t1, cursorMs]);
+  }, [sun, earth, t0, t1, cursorMs, dateLabels]);
 
   const scrubAt = (clientX: number) => {
     const rect = boxRef.current?.getBoundingClientRect();
@@ -78,53 +101,40 @@ export function SynodicTimeline({ sun, earth, cursor, onScrub }: SynodicTimeline
   };
   const step = (ms: number) => onScrub(toIsoUtc(Math.min(t1, Math.max(t0, cursorMs + ms))));
 
-  const offsetDays = (cursorMs - t0) / MS_PER_DAY;
-  const totalHours = Math.round((t1 - t0) / MS_PER_HOUR);
-
   return (
-    <div className="flex-1 flex flex-col justify-center min-w-[240px]">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 text-[10px] font-mono mb-1">
-        <span className="text-steel">
-          CICLO SINÓDICO — arrastrar para desplazar · <span className="text-amber-400">■ luz</span> · <span className="text-sky-400">■ Tierra visible</span>
-        </span>
-        <span className="text-amber-400 font-medium tabular-nums">
-          DÍA {nf1.format(offsetDays)} DE {nf1.format(SYNODIC_MONTH_DAYS)}
-        </span>
-      </div>
-      <div
-        ref={boxRef}
-        role="slider"
-        tabIndex={0}
-        aria-label="Instante dentro del día lunar"
-        aria-valuemin={0}
-        aria-valuemax={totalHours}
-        aria-valuenow={Math.round((cursorMs - t0) / MS_PER_HOUR)}
-        aria-valuetext={formatUtc(cursorMs)}
-        className="relative h-5 bg-obsidian rounded border border-borderline overflow-hidden cursor-ew-resize touch-none"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          scrubAt(e.clientX);
-        }}
-        onPointerMove={(e) => {
-          if (e.currentTarget.hasPointerCapture(e.pointerId)) scrubAt(e.clientX);
-        }}
-        onKeyDown={(e) => {
-          const map: Record<string, () => void> = {
-            ArrowLeft: () => step(-MS_PER_HOUR),
-            ArrowRight: () => step(MS_PER_HOUR),
-            PageDown: () => step(-MS_PER_DAY),
-            PageUp: () => step(MS_PER_DAY),
-            Home: () => onScrub(toIsoUtc(t0)),
-            End: () => onScrub(toIsoUtc(t1)),
-          };
-          if (map[e.key]) {
-            e.preventDefault();
-            map[e.key]();
-          }
-        }}
-      >
-        <canvas ref={canvasRef} className="w-full h-full block" aria-hidden="true" />
-      </div>
+    <div
+      ref={boxRef}
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={Math.round((t1 - t0) / MS_PER_HOUR)}
+      aria-valuenow={Math.round((cursorMs - t0) / MS_PER_HOUR)}
+      aria-valuetext={formatUtc(cursorMs)}
+      className={`relative w-full ${heightClass} bg-obsidian rounded border border-borderline overflow-hidden cursor-ew-resize touch-none`}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        scrubAt(e.clientX);
+      }}
+      onPointerMove={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) scrubAt(e.clientX);
+      }}
+      onKeyDown={(e) => {
+        const map: Record<string, () => void> = {
+          ArrowLeft: () => step(-MS_PER_HOUR),
+          ArrowRight: () => step(MS_PER_HOUR),
+          PageDown: () => step(-MS_PER_DAY),
+          PageUp: () => step(MS_PER_DAY),
+          Home: () => onScrub(toIsoUtc(t0)),
+          End: () => onScrub(toIsoUtc(t1)),
+        };
+        if (map[e.key]) {
+          e.preventDefault();
+          map[e.key]();
+        }
+      }}
+    >
+      <canvas ref={canvasRef} className="w-full h-full block" aria-hidden="true" />
     </div>
   );
 }

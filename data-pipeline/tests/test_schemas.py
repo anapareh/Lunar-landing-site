@@ -38,7 +38,7 @@ def _assert_valid(name: str, path: Path) -> object:
     return data
 
 
-@pytest.mark.parametrize("name", ["manifest", "sites", "ephemeris", "horizon"])
+@pytest.mark.parametrize("name", ["manifest", "sites", "ephemeris", "horizon", "horizon_grid"])
 def test_schema_is_valid(name: str) -> None:
     _validator(name)
 
@@ -80,3 +80,14 @@ def test_generated_horizon(path: Path) -> None:
     expected = 360 / data["azimuth_step_deg"]
     assert expected == int(expected), "azimuth_step_deg debe dividir 360"
     assert len(data["horizon_elevation_deg"]) == int(expected)
+
+
+@pytest.mark.parametrize("path", _generated("horizon_grid/*.json"), ids=str)
+def test_generated_horizon_grid(path: Path) -> None:
+    data = _assert_valid("horizon_grid", path)
+    n = 2 * data["half_size"] + 1
+    assert len(data["surface_height_m"]) == n * n
+    n_az = round(360 / data["azimuth_step_deg"])
+    bin_path = WEB_DATA / data["data_file"]
+    assert bin_path.stat().st_size == n * n * n_az * 2  # int16
+    assert data["node_count"] == sum(h is not None for h in data["surface_height_m"])

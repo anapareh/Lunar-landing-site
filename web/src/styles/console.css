@@ -1,5 +1,5 @@
 /*
- * Piezas visuales de la consola, adaptadas de docs/design/estetica.html.
+ * Piezas visuales de la consola, adaptadas de la maqueta "Selene" (mockup/).
  */
 
 /* Barra de desplazamiento */
@@ -20,30 +20,32 @@
 
 /* Panel de consola */
 .console-panel {
-  background-color: rgba(17, 22, 31, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid #242f40;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  background-color: rgba(13, 20, 31, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #1f2a3a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 /* Botón de control */
 .btn-control {
-  background-color: #161d29;
-  border: 1px solid #242f40;
-  color: #cbd5e1;
+  background-color: #0d141f;
+  border: 1px solid #1f2a3a;
+  color: #e2e8f0;
+  cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.btn-control:hover:not(:disabled) {
-  background-color: #1e2738;
-  border-color: #3b4d6b;
-  color: #ffffff;
+@media (hover: hover) {
+  .btn-control:hover:not(:disabled) {
+    border-color: #38bdf8;
+    color: #7dd3fc;
+  }
 }
 .btn-control.active,
 .btn-control[aria-pressed="true"] {
-  background-color: #1e293b;
+  background-color: rgba(56, 189, 248, 0.18);
   border-color: #38bdf8;
-  color: #f8fafc;
+  color: #7dd3fc;
 }
 .btn-control:disabled {
   opacity: 0.45;
@@ -60,6 +62,70 @@
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
   cursor: pointer;
+}
+
+/* Campos de fecha y coordenadas (maqueta) */
+.date-input,
+.coord-input {
+  background: #0a0d12;
+  border: 1px solid #1f2a3a;
+  color: #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font: 11px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.date-input:focus,
+.coord-input:focus {
+  border-color: #38bdf8;
+}
+
+/* Filas de la lista de sitios */
+.site-row {
+  border: 1px solid #1f2a3a;
+  background: rgba(10, 13, 18, 0.8);
+}
+button.site-row {
+  cursor: pointer;
+}
+button.site-row:hover {
+  border-color: #38bdf8;
+}
+.site-row.sel {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* Etiquetas de las balizas de sitios en el globo */
+.beacon-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font: 600 10px var(--font-mono);
+  color: #e2e8f0;
+  background: rgba(13, 20, 31, 0.85);
+  border: 1px solid #1f2a3a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+.beacon-label:hover {
+  border-color: #38bdf8;
+  color: #7dd3fc;
+}
+
+/* Móvil (maqueta "Selene" móvil): controles táctiles más altos, etiquetas compactas */
+@media (max-width: 1023px) {
+  .btn-control {
+    min-height: 34px;
+  }
+  .beacon-label {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
 }
 
 /* Etiquetas proyectadas sobre el globo */

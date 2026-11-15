@@ -1,13 +1,17 @@
-﻿/**
+/**
  * Estado global de la app (zustand).
  * - Escenario en edición: coordenadas libres + fecha de referencia (inicio de la ventana).
  * - Tiempo: `cursor` es el instante mostrado dentro de la ventana; la simulación lo hace avanzar.
- * - Interfaz HUD: modo técnico/divulgativo, paneles ocultos, cajón de análisis, vista del globo.
+ * - Interfaz: modo Simple/Avanzado, escena (globo o horizonte local), cajón de análisis, vista del globo.
  * - Escenarios a comparar (sitio + fecha, máx. 4) y escenario activo.
  */
 import { create } from "zustand";
 import type { Scenario } from "../types";
 import type { GlobeView } from "../components/map/LunarGlobe";
+import { parseUrlState } from "../lib/urlState";
+
+/** Estado inicial opcional desde la URL (?lat=&lon=&fecha=&modo=&vista=). */
+const initial = parseUrlState(typeof window !== "undefined" ? window.location.search : "");
 
 export const MAX_SCENARIOS = 4;
 
@@ -23,7 +27,9 @@ export interface Coords {
   lon: number;
 }
 
-export type AppMode = "tech" | "edu";
+export type AppMode = "simple" | "advanced";
+export type SceneMode = "globe" | "local";
+export type Sheet = "sites" | "cond" | null;
 
 export interface AppState {
   /** Coordenadas libres en edición (horizonte geométrico). */
@@ -43,9 +49,15 @@ export interface AppState {
   setSpeed: (s: number) => void;
 
   mode: AppMode;
+  /** Cambia el modo; en Simple vuelve a la vista de globo. */
   setMode: (m: AppMode) => void;
-  hudCollapsed: boolean;
-  toggleHud: () => void;
+  /** Escena principal: globo 3D u horizonte local (vista desde la superficie). */
+  scene: SceneMode;
+  setScene: (s: SceneMode) => void;
+  /** Móvil: hoja inferior abierta (panel de sitios o de condiciones). */
+  sheet: Sheet;
+  toggleSheet: (s: Exclude<Sheet, null>) => void;
+  closeSheet: () => void;
   /** Retícula selenográfica del globo. */
   showGrid: boolean;
   toggleGrid: () => void;
@@ -70,8 +82,8 @@ export interface AppState {
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
-  customCoords: { lat: 0, lon: 0 },
-  date: null,
+  customCoords: initial.lat !== undefined && initial.lon !== undefined ? { lat: initial.lat, lon: initial.lon } : { lat: 0, lon: 0 },
+  date: initial.date ?? null,
   setCustomCoords: (customCoords) => set({ customCoords }),
   setDate: (date) => set({ date, cursor: null }),
 
@@ -82,10 +94,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
   speed: SIM_SPEEDS[1].value,
   setSpeed: (speed) => set({ speed }),
 
-  mode: "tech",
-  setMode: (mode) => set({ mode }),
-  hudCollapsed: false,
-  toggleHud: () => set((s) => ({ hudCollapsed: !s.hudCollapsed })),
+  mode: initial.mode ?? "simple",
+  setMode: (mode) => set((s) => ({ mode, scene: mode === "simple" ? "globe" : s.scene })),
+  scene: initial.mode === "advanced" ? initial.scene ?? "globe" : "globe",
+  setScene: (scene) => set({ scene }),
+  sheet: initial.sheet ?? null,
+  toggleSheet: (sheet) => set((s) => ({ sheet: s.sheet === sheet ? null : sheet })),
+  closeSheet: () => set((s) => (s.sheet ? { sheet: null } : s)),
   showGrid: true,
   toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
   drawerOpen: false,

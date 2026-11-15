@@ -3,7 +3,7 @@
  * Fuente de verdad: docs/data-contract.md y docs/schemas/*.schema.json. Mantener sincronizado.
  */
 
-export const CONTRACT_VERSION = "1.0.0";
+export const CONTRACT_VERSION = "1.1.0";
 
 /** Vector [x, y, z] en km, en el marco lunar fijo. */
 export type Vector3 = [number, number, number];
@@ -19,7 +19,33 @@ export interface Manifest {
   ephemeris: { file: string; start: string; end: string }[];
   /** ids con horizons/<id>.json disponible. */
   horizons: string[];
+  /** v1.1: rejillas de horizontes para coordenadas libres (p. ej. polo sur). */
+  horizon_grids?: { id: string; file: string }[];
   basemaps: Basemap[];
+}
+
+/** v1.1: metadatos de horizon_grid/<id>.json (los perfiles van en un binario int16 aparte). */
+export interface HorizonGridMeta {
+  contract_version: string;
+  id: string;
+  projection: "polar_stereographic_south";
+  sphere_radius_m: number;
+  spacing_m: number;
+  /** Nodos de −K a K en cada eje: (2K+1)² celdas. */
+  half_size: number;
+  /** Solo hay nodos con latitud ≤ max_lat. */
+  max_lat: number;
+  azimuth_step_deg: number;
+  value_scale_deg: number;
+  missing_value: number;
+  data_file: string;
+  node_count: number;
+  observer_height_m: number;
+  max_distance_km: number;
+  dem: { product: string; resolution_m: number; source_url: string | null };
+  method_version: string;
+  /** Altura del terreno por celda (null fuera de cobertura). */
+  surface_height_m: (number | null)[];
 }
 
 export interface Basemap {

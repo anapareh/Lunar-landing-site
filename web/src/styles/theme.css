@@ -1,5 +1,5 @@
 /*
- * Tema "consola de dinámica de vuelo" (referencia: docs/design/estetica.html), solo oscuro.
+ * Tema de la maqueta "Selene" (mockup/), solo oscuro.
  * - Paleta de la maqueta para superficies, textos, marcadores y estados.
  * - Series de datos (líneas de la gráfica): pasos que pasan el validador de paleta sobre la
  *   superficie de los paneles (#11161f); los colores exactos de la maqueta quedan para marcadores.
@@ -11,11 +11,11 @@
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
 
   --color-obsidian: #0a0d12;
-  --color-surface: #11161f;
-  --color-panel: #161d29;
-  --color-borderline: #242f40;
-  --color-steel: #8b9bb4;
-  --color-telemetry: #eef2f6;
+  --color-surface: #111a27;
+  --color-panel: #0d141f;
+  --color-borderline: #1f2a3a;
+  --color-steel: #7d8ba1;
+  --color-telemetry: #e2e8f0;
   --color-solar: #f59e0b;
   --color-earth: #38bdf8;
   --color-nominal: #10b981;
@@ -33,7 +33,7 @@
 html,
 body {
   background-color: #0a0d12;
-  color: #eef2f6;
+  color: #e2e8f0;
 }
 
 body {

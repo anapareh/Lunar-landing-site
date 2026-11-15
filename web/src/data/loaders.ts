@@ -6,7 +6,8 @@
  * - Si no hay manifest (el pipeline aún no ha generado datos), la app usa la efeméride
  *   sintética y muestra un aviso: nunca se presentan datos sintéticos como reales.
  */
-import type { Ephemeris, HorizonProfile, Manifest } from "../types";
+import type { Ephemeris, HorizonGridMeta, HorizonProfile, Manifest, SitesFile } from "../types";
+import type { HorizonGrid } from "../lib/horizonGrid";
 import { addLunarDays, fractionalIndex, parseUtc, toIsoUtc } from "../lib/time";
 import { makeSyntheticEphemeris } from "./fixtures/syntheticEphemeris";
 
@@ -89,8 +90,26 @@ export function mergeEphemerides(chunks: Ephemeris[]): Ephemeris {
   return out;
 }
 
+/** sites.json (copia del pipeline); null si aún no se ha generado. */
+export function loadSites(): Promise<SitesFile | null> {
+  return fetchJson<SitesFile>("sites.json");
+}
+
 export function loadHorizon(siteId: string): Promise<HorizonProfile | null> {
   return fetchJson<HorizonProfile>(`horizons/${siteId}.json`);
+}
+
+/** v1.1: rejilla de horizontes (metadatos JSON + binario int16 little-endian). */
+export async function loadHorizonGrid(entry: { id: string; file: string }): Promise<HorizonGrid | null> {
+  const meta = await fetchJson<HorizonGridMeta>(entry.file);
+  if (!meta) return null;
+  const res = await fetch(dataUrl(meta.data_file));
+  if (!res.ok) throw new Error(`Error ${res.status} al cargar ${meta.data_file}`);
+  const buf = await res.arrayBuffer();
+  const view = new DataView(buf);
+  const data = new Int16Array(buf.byteLength / 2);
+  for (let k = 0; k < data.length; k++) data[k] = view.getInt16(k * 2, true); // little-endian explícito
+  return { meta, data };
 }
 
 /** Efeméride sintética desde un día lunar antes de `now` hasta tres después. */

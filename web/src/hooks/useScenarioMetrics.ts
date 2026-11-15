@@ -9,6 +9,7 @@ import { loadEphemerisWindow } from "../data/loaders";
 import { EARTH_RADIUS_KM, SUN_RADIUS_KM, applyHorizon } from "../lib/horizon";
 import { computeSiteMetrics } from "../lib/metrics";
 import { computeSunEarthSeries } from "../lib/sunEarth";
+import { snapToGrid, type HorizonGrid } from "../lib/horizonGrid";
 import { addLunarDays, parseUtc, toIsoUtc } from "../lib/time";
 
 export type ScenarioResult =
@@ -17,7 +18,12 @@ export type ScenarioResult =
 
 const STEP_MINUTES = 20;
 
-export function useScenarioMetrics(ds: Dataset, scenarios: Scenario[], enabled: boolean): Record<string, ScenarioResult> {
+export function useScenarioMetrics(
+  ds: Dataset,
+  scenarios: Scenario[],
+  enabled: boolean,
+  grid: HorizonGrid | null = null,
+): Record<string, ScenarioResult> {
   const [results, setResults] = useState<Record<string, ScenarioResult>>({});
 
   useEffect(() => {
@@ -33,12 +39,13 @@ export function useScenarioMetrics(ds: Dataset, scenarios: Scenario[], enabled: 
             throw new RangeError("La fecha está fuera del rango de datos cargados");
           }
           const eph = ds.synthetic ? ds.ephemeris : await loadEphemerisWindow(ds.manifest, sc.date, end);
+          const profile = grid ? snapToGrid(grid, sc.lat, sc.lon)?.profile ?? null : null;
           const series = computeSunEarthSeries(eph, { lat: sc.lat, lon: sc.lon }, { start: sc.date, end, stepMinutes: STEP_MINUTES });
           out[sc.id] = {
             status: "ok",
-            metrics: computeSiteMetrics({ scenarioId: sc.id, siteId: sc.siteId, series, profile: null, at: sc.date }),
-            sun: applyHorizon(series.sun, null, SUN_RADIUS_KM),
-            earth: applyHorizon(series.earth, null, EARTH_RADIUS_KM),
+            metrics: computeSiteMetrics({ scenarioId: sc.id, siteId: sc.siteId, series, profile, at: sc.date }),
+            sun: applyHorizon(series.sun, profile, SUN_RADIUS_KM),
+            earth: applyHorizon(series.earth, profile, EARTH_RADIUS_KM),
             truncated: end !== fullEnd,
           };
         } catch (e) {
@@ -50,7 +57,7 @@ export function useScenarioMetrics(ds: Dataset, scenarios: Scenario[], enabled: 
     return () => {
       alive = false;
     };
-  }, [ds, scenarios, enabled]);
+  }, [ds, scenarios, enabled, grid]);
 
   return results;
 }

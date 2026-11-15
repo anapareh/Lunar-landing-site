@@ -12,7 +12,7 @@
   },
   "horizon": {
     "title": "Horizonte geométrico y horizonte real",
-    "body": "El horizonte geométrico supone una Luna lisa y redonda. El horizonte real lo marcan montañas y cráteres: cuando haya perfiles de relieve LOLA para un sitio, se usarán en lugar del geométrico.",
+    "body": "El horizonte geométrico supone una Luna lisa y redonda. El horizonte real lo marcan montañas y cráteres: en el polo sur (85°–90° S) se usa el relieve medido por el altímetro LOLA, y ahí unos pocos kilómetros pueden cambiar mucho las horas de luz. Fuera de esa zona, de momento, se usa el geométrico.",
     "sources": []
   }
 }

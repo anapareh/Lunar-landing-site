@@ -162,6 +162,42 @@ El pipeline la valida y la copia a `web/public/data/sites.json`.
 Las coordenadas libres no van en este archivo: la web las crea en memoria con
 `category: "other"`, `id: "custom-…"` y horizonte `geometric`.
 
+## v1.1 — `horizon_grid/<id>.json` + `.bin` (rejilla de horizontes)
+
+Añadido compatible con v1.0: el manifest gana el campo opcional `horizon_grids: [{ "id", "file" }]`.
+Sirve para dar horizonte LOLA a **coordenadas libres** en el polo sur sin backend.
+
+- Nodos regulares en el plano estereográfico polar sur (la misma proyección que los DEM LOLA):
+  `X = r·sin(lon)`, `Y = r·cos(lon)`, `r = 2·R·tan((90 − |lat|)/2)`; nodo `(i, j)` ↔ `X = i·s`, `Y = j·s`,
+  con `i, j ∈ [−K, K]`. Inversa: `lat = −90 + 2·atan(r/2R)`, `lon = atan2(X, Y)`.
+- La web localiza el nodo más cercano y **evalúa ese nodo exacto** (no interpola horizontes); muestra la distancia.
+
+```json
+{
+  "contract_version": "1.1.0",
+  "id": "south_5km",
+  "projection": "polar_stereographic_south",
+  "sphere_radius_m": 1737400,
+  "spacing_m": 5000,
+  "half_size": 0,
+  "max_lat": -85,
+  "azimuth_step_deg": 1,
+  "value_scale_deg": 0.01,
+  "missing_value": -32768,
+  "data_file": "horizon_grid/south_5km.bin",
+  "node_count": 0,
+  "observer_height_m": 2,
+  "max_distance_km": 300,
+  "dem": { "product": "<nombre>", "resolution_m": 0, "source_url": "<url>" },
+  "method_version": "<semver>",
+  "surface_height_m": [null]
+}
+```
+
+`data_file`: int16 little-endian; índice `((j + K)·(2K+1) + (i + K))·n_az + k`, con `n_az = 360/azimuth_step_deg`;
+valor × `value_scale_deg` = elevación del horizonte en grados; `missing_value` en celdas sin datos.
+`surface_height_m` tiene `(2K+1)²` entradas en el mismo orden. Schema: `docs/schemas/horizon_grid.schema.json`.
+
 ## `golden.json` (solo tests)
 
 `web/src/lib/__fixtures__/golden.json`, generado por `data-pipeline` directamente desde SPICE

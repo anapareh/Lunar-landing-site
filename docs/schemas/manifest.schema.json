@@ -26,6 +26,19 @@
       }
     },
     "horizons": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" } },
+    "horizon_grids": {
+      "description": "v1.1: rejillas de horizontes para coordenadas libres",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "file"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "file": { "type": "string", "pattern": "^horizon_grid/.+\\.json$" }
+        }
+      }
+    },
     "basemaps": {
       "type": "array",
       "items": {
