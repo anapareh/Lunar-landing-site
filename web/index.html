@@ -36,7 +36,6 @@
   nav { margin-left: auto; display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: .95rem; }
   .lang { font-family: var(--font-display); font-weight: 700; font-size: .85rem; color: var(--ice); background: rgba(8,20,43,.6); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
   .lang:hover { border-color: var(--cyan); color: var(--cyan); }
-  .mini-launch { font-family: var(--font-display); font-weight: 700; color: var(--space); background: var(--cyan); padding: 8px 16px; border-radius: 999px; font-size: .9rem; }
 
   /* Hero */
   .hero { position: relative; overflow: hidden; min-height: 640px; display: flex; align-items: center; background: radial-gradient(120% 90% at 20% 0%, #0a1d44 0%, var(--space) 60%); }
@@ -85,7 +84,7 @@
   footer { padding-block: 44px 48px; color: var(--mute); font-size: .86rem; text-align: center; }
   footer p { margin: 6px auto 0; max-width: 52em; }
 
-  @media (min-width: 900px) { .brand small { display: inline; } .mini-launch { display: none; } }
+  @media (min-width: 900px) { .brand small { display: inline; } }
   @media (max-width: 900px) {
     .strip { grid-template-columns: 1fr; margin-top: -60px; }
     .strip > div + div { border-left: 0; border-top: 1px solid var(--line); }
@@ -112,7 +111,6 @@
     </a>
     <nav>
       <button class="lang" type="button" id="lang-toggle" aria-label="Switch to English">EN</button>
-      <a class="mini-launch" data-app href="app/" data-i18n="launch">Abrir la app</a>
     </nav>
   </div>
 </header>

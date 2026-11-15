@@ -17,7 +17,6 @@ const LANG_KEY = "artemis-atlas-lang";
 
 const EN: Record<string, string> = {
   tagline: "Lunar Landing Site Navigator",
-  launch: "Open the app",
   eyebrow: "Lunar south pole",
   h1a: "Lunar",
   h1b: "Landing Navigator",
